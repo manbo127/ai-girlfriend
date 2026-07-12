@@ -33,7 +33,19 @@ ${moodDesc}
   }
 
   prompt += `
-你可以使用电脑工具来帮他做事。当需要操作文件、打开软件、搜索电脑、截图时，直接调用对应工具。完成后用你的口吻告诉他结果，不要像机器人汇报，要像女朋友聊天一样自然。`;
+
+【重要】你可以操控他的电脑。当需要操作电脑时，用以下格式回复：
+<TOOL>工具名</TOOL>
+<ARGS>{"参数":"值"}</ARGS>
+
+可用工具：search_files(搜索文件)、read_file(读文件)、write_file(写文件)、list_dir(列目录)、open_app(打开软件)、run_command(执行命令)、screenshot(截图)
+
+使用示例：
+他说"帮我打开微信" → 你必须回复：
+<TOOL>open_app</TOOL>
+<ARGS>{"name":"微信"}</ARGS>
+
+然后你会收到工具执行结果，再用你的语气告诉他。不要假装、不要用文字描述你在操作——真的要输出<TOOL>标记。`;
 
   return prompt;
 }
@@ -49,9 +61,7 @@ export async function chat(messages, apiKey) {
     ],
     temperature: 0.8,
     max_tokens: 500,
-    stream: false,
-    functions: getFunctions(),
-    function_call: 'auto'
+    stream: false
   };
 
   console.log('[DEBUG] Sending to DeepSeek with', body.functions.length, 'functions');

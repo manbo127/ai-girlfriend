@@ -89,27 +89,30 @@ async function handleSend() {
 
   try {
     let message = await aiChat(conversationHistory, apiKey);
-    console.log('[DEBUG] AI response:', JSON.stringify({ content: message.content?.substring(0, 100), function_call: message.function_call }));
 
-    // Function call loop — max 3 rounds
-    let funcRounds = 0;
-    while (message.function_call && funcRounds < 3) {
-      funcRounds++;
-      const fc = message.function_call;
+    // Parse <TOOL>...</TOOL> <ARGS>...</ARGS> tags — max 3 rounds
+    let toolRounds = 0;
+    while (toolRounds < 3) {
+      const toolMatch = message.content?.match(/<TOOL>(\w+)<\/TOOL>/);
+      const argsMatch = message.content?.match(/<ARGS>({[\s\S]*?})<\/ARGS>/);
+      if (!toolMatch) break;
 
-      // Add assistant function_call to conversation
-      conversationHistory.push(message);
+      toolRounds++;
+      const toolName = toolMatch[1];
+      const toolArgs = argsMatch ? argsMatch[1] : '{}';
+      console.log('[DEBUG] Tool call:', toolName, toolArgs);
 
-      addSystemMessage(`🔧 ${fc.name}...`);
-      const result = await executeFunctionCall(fc);
+      // Add assistant message to conversation
+      conversationHistory.push({ role: 'assistant', content: message.content });
+
+      addSystemMessage(`🔧 ${toolName}...`);
+      const result = await executeToolByName(toolName, toolArgs);
       conversationHistory.push({
-        role: 'function',
-        name: fc.name,
-        content: result
+        role: 'user',
+        content: `[工具结果：${toolName}]\n${result}\n\n请用你的语气告诉他结果。`
       });
 
       message = await aiChat(conversationHistory, apiKey);
-      console.log('[DEBUG] AI response (round', funcRounds + 1, '):', JSON.stringify({ content: message.content?.substring(0, 100), function_call: message.function_call }));
     }
 
     hideTyping();
@@ -245,9 +248,8 @@ function showConfirmDialog(toolName, toolArgs) {
   });
 }
 
-async function executeFunctionCall(fc) {
-  const { name, arguments: args } = fc;
-  const parsedArgs = JSON.parse(args);
+async function executeToolByName(name, argsJson) {
+  const parsedArgs = JSON.parse(argsJson);
 
   // Check trusted list
   const trustedStr = localStorage.getItem('trusted_tools') || '{}';
