@@ -248,15 +248,24 @@ function getAppCache() {
 // --- App Finder ---
 
 const APP_MAP = {
-  '微信': ['WeChat', 'wechat'],
-  'qq': ['QQ', 'Tencent\\QQ'],
-  '网易云': ['cloudmusic', 'Netease', 'netease', 'CloudMusic'],
-  '音乐': ['cloudmusic', 'Netease', 'QQMusic', 'kugou'],
-  '浏览器': ['chrome', 'Chrome', 'firefox', 'Firefox', 'msedge', 'Edge'],
-  'chrome': ['chrome', 'Chrome', 'Google\\Chrome'],
-  'edge': ['msedge', 'Edge'],
-  'vscode': ['Code', 'Microsoft VS Code'],
-  'visual studio code': ['Code'],
+  '微信': ['C:\\Program Files\\Tencent\\Weixin\\Weixin.exe'],
+  'qq': ['D:\\QQ\\QQ.exe'],
+  'QQ': ['D:\\QQ\\QQ.exe'],
+  '网易云': ['D:\\CloudMusic\\cloudmusic.exe'],
+  '音乐': ['D:\\CloudMusic\\cloudmusic.exe'],
+  'steam': ['D:\\steam\\Steam.exe', 'steam', 'Steam'],
+  '抖音': ['D:\\LenovoSoftstore\\Install\\douyin\\douyin.exe'],
+  'douyin': ['D:\\LenovoSoftstore\\Install\\douyin\\douyin.exe'],
+  '豆包': ['D:\\Doubao\\Doubao.exe'],
+  'doubao': ['D:\\Doubao\\Doubao.exe'],
+  'vpn': ['D:\\Reaeeman\\Reaeeman.exe'],
+  '梯子': ['D:\\Reaeeman\\Reaeeman.exe'],
+  '翻墙': ['D:\\Reaeeman\\Reaeeman.exe'],
+  '代理': ['D:\\Reaeeman\\Reaeeman.exe'],
+  'reaeeman': ['D:\\Reaeeman\\Reaeeman.exe'],
+  'vscode': ['D:\\Microsoft VS Code\\Code.exe', 'Code', 'Microsoft VS Code'],
+  'visual studio code': ['D:\\Microsoft VS Code\\Code.exe'],
+  'code': ['D:\\Microsoft VS Code\\Code.exe'],
   'wps': ['wps', 'WPS'],
   'word': ['WINWORD', 'Microsoft Office'],
   'excel': ['EXCEL', 'Microsoft Office'],
@@ -264,7 +273,9 @@ const APP_MAP = {
   '计算器': ['calc', 'Calculator'],
   '终端': ['cmd', 'Windows Terminal', 'wt'],
   'powershell': ['powershell', 'pwsh'],
-  'steam': ['steam', 'Steam'],
+  '浏览器': ['chrome', 'Chrome', 'firefox', 'Firefox', 'msedge', 'Edge'],
+  'chrome': ['chrome', 'Chrome', 'Google\\Chrome'],
+  'edge': ['msedge', 'Edge'],
   '钉钉': ['DingTalk', 'dingtalk'],
   '腾讯会议': ['wemeet', 'Tencent\\WeMeet'],
   '飞书': ['feishu', 'Lark'],
@@ -287,6 +298,16 @@ function findExe(appName, dirs, maxDepth = 3) {
 
   if (searchNames.length === 0) {
     searchNames.push(lower);
+  }
+
+  // Direct path check — if any search name is an absolute path, try it first
+  for (const name of searchNames) {
+    if (name.includes(':\\') || name.includes(':/')) {
+      if (fs.existsSync(name)) {
+        console.log('[AppCache] Direct path:', name);
+        return name;
+      }
+    }
   }
 
   // Check app cache first (pre-indexed exe list)
