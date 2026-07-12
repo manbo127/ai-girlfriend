@@ -50,7 +50,8 @@ export async function chat(messages, apiKey) {
     temperature: 0.8,
     max_tokens: 500,
     stream: false,
-    tools: getTools()
+    tools: getTools(),
+    tool_choice: 'auto'
   };
 
   const response = await fetch(`${DEEPSEEK_BASE}/v1/chat/completions`, {
