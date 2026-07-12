@@ -1,18 +1,16 @@
 // mood.js — Emotional state machine
 
-import { saveMood, getMood } from './storage.js';
+import { saveMood, getMood as getSavedMood } from './storage.js';
 
 let mood = { happy: 50, closeness: 30, pouty: 20, worried: 10 };
 let decayTimer = null;
-
-export { getMood };
 
 export function getMood() {
   return { ...mood };
 }
 
 export async function initMood() {
-  const saved = await getMood();
+  const saved = await getSavedMood();
   mood = saved;
   startDecayTimer();
 }
