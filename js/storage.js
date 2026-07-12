@@ -8,39 +8,48 @@ let db = null;
 
 export function getDB() { return db; }
 
+function upgradeDB(db) {
+  if (!db.objectStoreNames.contains('messages')) {
+    const store = db.createObjectStore('messages', { keyPath: 'id' });
+    store.createIndex('timestamp', 'timestamp', { unique: false });
+  }
+  if (!db.objectStoreNames.contains('manualMemory')) {
+    db.createObjectStore('manualMemory', { keyPath: 'key' });
+  }
+  if (!db.objectStoreNames.contains('autoMemories')) {
+    const store = db.createObjectStore('autoMemories', { keyPath: 'id' });
+    store.createIndex('timestamp', 'timestamp', { unique: false });
+  }
+  if (!db.objectStoreNames.contains('templates')) {
+    db.createObjectStore('templates', { keyPath: 'id' });
+  }
+  if (!db.objectStoreNames.contains('settings')) {
+    db.createObjectStore('settings', { keyPath: 'key' });
+  }
+  if (!db.objectStoreNames.contains('mood')) {
+    db.createObjectStore('mood', { keyPath: 'key' });
+  }
+  if (!db.objectStoreNames.contains('pendingTopic')) {
+    db.createObjectStore('pendingTopic', { keyPath: 'key' });
+  }
+}
+
 export function openDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('messages')) {
-        const store = db.createObjectStore('messages', { keyPath: 'id' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('manualMemory')) {
-        db.createObjectStore('manualMemory', { keyPath: 'key' });
-      }
-      if (!db.objectStoreNames.contains('autoMemories')) {
-        const store = db.createObjectStore('autoMemories', { keyPath: 'id' });
-        store.createIndex('timestamp', 'timestamp', { unique: false });
-      }
-      if (!db.objectStoreNames.contains('templates')) {
-        db.createObjectStore('templates', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('settings')) {
-        db.createObjectStore('settings', { keyPath: 'key' });
-      }
-      if (!db.objectStoreNames.contains('mood')) {
-        db.createObjectStore('mood', { keyPath: 'key' });
-      }
-      if (!db.objectStoreNames.contains('pendingTopic')) {
-        db.createObjectStore('pendingTopic', { keyPath: 'key' });
-      }
-    };
-
-    request.onsuccess = (event) => { db = event.target.result; resolve(db); };
-    request.onerror = (event) => reject(event.target.error);
+    let retried = false;
+    function tryOpen() {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (event) => upgradeDB(event.target.result);
+      request.onsuccess = (event) => { db = event.target.result; resolve(db); };
+      request.onerror = (event) => {
+        if (retried) return reject(event.target.error);
+        retried = true;
+        console.warn('IndexedDB open failed, resetting...', event.target.error);
+        indexedDB.deleteDatabase(DB_NAME);
+        tryOpen();
+      };
+    }
+    tryOpen();
   });
 }
 

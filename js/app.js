@@ -391,5 +391,10 @@ async function updateTemplateNameDisplay() {
 // --- Bootstrap ---
 init().catch(err => {
   console.error('App init failed:', err);
-  document.body.innerHTML = `<div style="padding:40px;text-align:center;color:red;">初始化失败：${err.message}</div>`;
+  document.body.innerHTML = `<div style="padding:60px 20px;text-align:center;font-family:sans-serif;">
+    <div style="font-size:48px;margin-bottom:16px;">💔</div>
+    <div style="font-size:16px;color:#ff4757;margin-bottom:8px;">启动失败</div>
+    <div style="font-size:13px;color:#6c757d;margin-bottom:16px;">${err.message}</div>
+    <button onclick="location.reload()" style="padding:10px 30px;border:none;border-radius:20px;background:#ff6b81;color:#fff;font-size:14px;cursor:pointer;">重新加载</button>
+  </div>`;
 });
