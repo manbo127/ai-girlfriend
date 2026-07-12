@@ -44,7 +44,7 @@ async function loadHistory() {
   messages.forEach(msg => renderMessage(msg));
   // Load last N into conversation context
   conversationHistory = messages
-    .filter(m => m.role === 'user' || m.role === 'assistant')
+    .filter(m => (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
     .slice(-MAX_CONTEXT_MESSAGES)
     .map(m => ({ role: m.role, content: m.content }));
 }
