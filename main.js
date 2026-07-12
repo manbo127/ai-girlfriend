@@ -105,11 +105,19 @@ ipcMain.handle('open-app', async (event, appName) => {
       });
       logOperation('open-app', appName, 'found: ' + found);
     } else {
-      // Fallback: try start command
-      exec(`start "" "${appName}"`, (err) => {
-        if (err) console.error('open-app error:', err);
+      // Fallback: use 'where' to find exe on PATH, then 'start' as last resort
+      exec(`where "${appName}"`, (err, stdout) => {
+        if (!err && stdout.trim()) {
+          const exePath = stdout.trim().split('\n')[0].trim();
+          exec(`"${exePath}"`, (e) => { if (e) console.error('open-app error:', e); });
+          logOperation('open-app', appName, 'where found: ' + exePath);
+        } else {
+          exec(`start "" "${appName}"`, (e) => {
+            if (e) console.error('open-app error:', e);
+          });
+          logOperation('open-app', appName, 'fallback start (not found)');
+        }
       });
-      logOperation('open-app', appName, 'fallback start');
     }
   } else if (platform === 'darwin') {
     exec(`open -a "${appName}"`, (err) => {
@@ -186,16 +194,22 @@ const APP_MAP = {
 };
 
 function findExe(appName, dirs, maxDepth = 2) {
-  // Try mapping first
   const lower = appName.toLowerCase().replace(/\s/g, '');
-  let searchNames = [lower];
+  let searchNames = [];
 
+  // Check app map for English names
   for (const [cnName, exeList] of Object.entries(APP_MAP)) {
     if (lower.includes(cnName) || cnName.includes(lower)) {
       searchNames.push(...exeList.map(e => e.toLowerCase().replace(/\s/g, '')));
     }
   }
 
+  // Fallback: use the original name (works for English app names)
+  if (searchNames.length === 0) {
+    searchNames.push(lower);
+  }
+
+  console.log('[DEBUG] Searching for:', searchNames);
   for (const dir of dirs) {
     const found = searchForExe(dir, searchNames, maxDepth);
     if (found) return found;
