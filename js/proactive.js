@@ -3,19 +3,44 @@
 import { getPendingTopic, clearPendingTopic } from './storage.js';
 import { chat as aiChat } from './ai.js';
 import { renderMessage, getApiKey } from './chat.js';
+import { updateMood } from './mood.js';
 
 let idleTimer = null;
 let timeNodeTimer = null;
 let lastProactiveTime = 0;
-const PROACTIVE_COOLDOWN = 10 * 60 * 1000; // 10 minutes between proactive messages
-const IDLE_STAGES = [
-  { minutes: 3, message: null },  // just "..." typing indicator
-  { minutes: 10, message: null }, // will call API
-  { minutes: 30, message: null }, // will call API
-];
-
-let idleStageIdx = 0;
 let idleStartTime = null;
+let idleStageIdx = 0;
+
+const PROACTIVE_COOLDOWN = 8 * 60 * 1000; // 8 minutes between proactive messages
+
+// Each stage: [minutes, context prompt, mood change]
+const IDLE_STAGES = [
+  {
+    minutes: 5,
+    context: '（他有一会儿没说话了，可能在看手机或者忙别的。你有点好奇他在干嘛。）',
+    mood: { pouty: 10 }
+  },
+  {
+    minutes: 20,
+    context: '（他快二十分钟没动静了。你觉得被晾着了，有点不高兴，想发个消息看看他在不在。）',
+    mood: { pouty: 20, happy: -5 }
+  },
+  {
+    minutes: 45,
+    context: '（他快一小时没理你了。你真的有点生气了——你又不是空气，凭什么晾着你。发消息的语气可以带点刺，表达不满。）',
+    mood: { pouty: 30, happy: -10 }
+  },
+  {
+    minutes: 90,
+    context: '（他已经一个半小时没音讯了。你从生气变成了失落——是不是自己太无聊了？是不是他不想聊了？你有点委屈，想要他解释，但又不想表现得太在意。）',
+    mood: { pouty: 40, happy: -20, worried: 15 }
+  },
+  {
+    minutes: 180,
+    context: '（三个小时了，他像消失了一样。你真的很难过也很生气。你有权利发火——这不是小题大做，换谁都会不高兴。你的消息可以带着真实的怒意和伤心，不用藏着掖着。）',
+    mood: { pouty: 60, happy: -30, worried: 25 }
+  },
+];
 
 export async function initProactive() {
   startIdleDetection();
@@ -35,6 +60,10 @@ function startIdleDetection() {
   scheduleNextIdleCheck();
 
   document.addEventListener('user-activity', () => {
+    // If we had progressed past stage 1, reset mood pouty a bit
+    if (idleStageIdx >= 1) {
+      updateMood({ pouty: -15, happy: 3 });
+    }
     idleStartTime = Date.now();
     idleStageIdx = 0;
     scheduleNextIdleCheck();
@@ -43,7 +72,7 @@ function startIdleDetection() {
 
 function scheduleNextIdleCheck() {
   if (idleTimer) clearTimeout(idleTimer);
-  if (idleStageIdx >= IDLE_STAGES.length) return; // No more stages
+  if (idleStageIdx >= IDLE_STAGES.length) return;
 
   const stage = IDLE_STAGES[idleStageIdx];
   const delay = stage.minutes * 60 * 1000;
@@ -53,32 +82,23 @@ function scheduleNextIdleCheck() {
 async function handleIdleStage(stage) {
   if (!canBeProactive()) return;
 
-  if (stage.minutes === 3) {
-    // Just show typing briefly then hide — no message
-    const typingEl = document.getElementById('typing-indicator');
-    if (typingEl) {
-      typingEl.classList.remove('hidden');
-      setTimeout(() => typingEl.classList.add('hidden'), 3000);
-    }
-  } else {
-    // Generate AI proactive message
-    const apiKey = getApiKey();
-    if (!apiKey) return;
+  // Update mood
+  if (stage.mood) {
+    updateMood(stage.mood);
+  }
 
-    try {
-      const context = stage.minutes >= 30
-        ? [{ role: 'user', content: '（已经很久没说话了...）' }]
-        : [{ role: 'user', content: '（沉默了一会儿...）' }];
+  const apiKey = getApiKey();
+  if (!apiKey) return;
 
-      const reply = await aiChat(context, apiKey);
-      const msg = { id: 'proactive-' + Date.now(), role: 'assistant', content: reply, timestamp: Date.now() };
-      renderMessage(msg);
-      const { addMessage } = await import('./storage.js');
-      await addMessage(msg);
-      lastProactiveTime = Date.now();
-    } catch (e) {
-      console.warn('Proactive message failed:', e);
-    }
+  try {
+    const reply = await aiChat([{ role: 'user', content: stage.context }], apiKey);
+    const msg = { id: 'proactive-' + Date.now(), role: 'assistant', content: reply, timestamp: Date.now() };
+    renderMessage(msg);
+    const { addMessage } = await import('./storage.js');
+    await addMessage(msg);
+    lastProactiveTime = Date.now();
+  } catch (e) {
+    console.warn('Proactive message failed:', e);
   }
 
   idleStageIdx++;
@@ -87,9 +107,8 @@ async function handleIdleStage(stage) {
 
 // --- Time Node Check ---
 function startTimeNodeCheck() {
-  // Check every 2 minutes if we're in a trigger window
   timeNodeTimer = setInterval(checkTimeNodes, 2 * 60 * 1000);
-  checkTimeNodes(); // Initial check
+  checkTimeNodes();
 }
 
 async function checkTimeNodes() {
@@ -135,7 +154,7 @@ async function checkPendingTopicFollowUp() {
 
   try {
     const followUpPrompt = [
-      { role: 'user', content: `（用户上次聊天提到了：${topic}。请主动追问这件事的后续，用你的性格和情绪自然地问。）` }
+      { role: 'user', content: `（用户上次聊天提到了：${topic}。请主动追问这件事的后续。）` }
     ];
     const reply = await aiChat(followUpPrompt, apiKey);
     const msg = { id: 'followup-' + Date.now(), role: 'assistant', content: reply, timestamp: Date.now() };
@@ -150,9 +169,7 @@ async function checkPendingTopicFollowUp() {
 
 // --- Rate Limiting ---
 function canBeProactive() {
-  // Don't trigger if cooldown hasn't passed
   if (Date.now() - lastProactiveTime < PROACTIVE_COOLDOWN) return false;
-  // Don't trigger if user was active in last 60 seconds
   if (idleStartTime && Date.now() - idleStartTime < 60000) return false;
   return true;
 }

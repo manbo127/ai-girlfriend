@@ -51,10 +51,11 @@ export function getMoodDescription() {
   const feelings = [];
 
   if (mood.happy > 70) feelings.push('心情很好');
-  else if (mood.happy < 30) feelings.push('心情不太好，有点烦');
+  else if (mood.happy < 30) feelings.push('心情不太好');
 
-  if (mood.pouty > 60) feelings.push('有点闹别扭，想让他哄你');
-  else if (mood.pouty > 30) feelings.push('想跟他撒个娇');
+  if (mood.pouty > 60) feelings.push('真的很生气——他晾了你这么久，你有权利发火');
+  else if (mood.pouty > 30) feelings.push('他好久没理你了，有点不高兴，想让他哄你');
+  else if (mood.pouty > 10) feelings.push('他有一会儿没说话了，有点在意');
 
   if (mood.worried > 50) feelings.push('有点担心他');
   if (mood.closeness > 70) feelings.push('跟他很亲近，心里踏实');
