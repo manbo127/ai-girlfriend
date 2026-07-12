@@ -88,9 +88,36 @@ async function handleSend() {
   sendBtn.disabled = true;
 
   try {
-    const reply = await aiChat(conversationHistory, apiKey);
+    let message = await aiChat(conversationHistory, apiKey);
+
+    // Tool calls loop — max 3 rounds
+    let toolRounds = 0;
+    while (message.tool_calls && message.tool_calls.length > 0 && toolRounds < 3) {
+      toolRounds++;
+
+      // Add assistant tool_calls to conversation
+      conversationHistory.push({
+        role: 'assistant',
+        content: message.content || '',
+        tool_calls: message.tool_calls
+      });
+
+      for (const tc of message.tool_calls) {
+        addSystemMessage(`🔧 ${tc.function.name}...`);
+        const result = await executeToolCall(tc);
+        conversationHistory.push({
+          role: 'tool',
+          tool_call_id: tc.id,
+          content: result
+        });
+      }
+
+      message = await aiChat(conversationHistory, apiKey);
+    }
+
     hideTyping();
 
+    const reply = message.content || '';
     const assistantMsg = { id: generateId(), role: 'assistant', content: reply, timestamp: Date.now() };
     renderMessage(assistantMsg);
     await addMessage(assistantMsg);
@@ -112,7 +139,6 @@ async function handleSend() {
           addSystemMessage(`💡 已记住：${fact}`);
         });
       }
-      // Detect pending topic from user's last message
       const topicWords = ['面试', '考试', '出差', '旅行', '要去', '打算', '准备', '计划', '明天', '下次', '周末', '约会', '项目', '答辩', '搬家', '看病'];
       const hasTopic = topicWords.some(w => text.includes(w));
       if (hasTopic) {
@@ -177,6 +203,93 @@ export function setApiKey(key) {
 export function resetIdleTimer() {
   // Will be wired by proactive.js — just declare the hook
   document.dispatchEvent(new CustomEvent('user-activity'));
+}
+
+// --- Tool Confirmation & Execution ---
+
+const TOOL_ICONS = { search_files: '🔍', read_file: '📄', write_file: '✏️', list_dir: '📁', open_app: '🚀', run_command: '⚡', screenshot: '📸' };
+const TOOL_NAMES = { search_files: '搜索文件', read_file: '读取文件', write_file: '写入文件', list_dir: '浏览目录', open_app: '打开应用', run_command: '执行命令', screenshot: '截屏' };
+
+function showConfirmDialog(toolName, toolArgs) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('confirm-dialog');
+    const icon = document.getElementById('confirm-tool-icon');
+    const desc = document.getElementById('confirm-tool-desc');
+    const btnAllow = document.getElementById('btn-allow');
+    const btnDeny = document.getElementById('btn-deny');
+    const trustLabel = document.getElementById('confirm-trust-label');
+    const trustCheckbox = document.getElementById('confirm-trust');
+
+    icon.textContent = TOOL_ICONS[toolName] || '🔧';
+    desc.textContent = `${TOOL_NAMES[toolName] || toolName}：${JSON.stringify(toolArgs)}`;
+    trustCheckbox.checked = false;
+
+    // hide trust option for run_command
+    if (toolName === 'run_command') {
+      trustLabel.classList.add('hidden');
+    } else {
+      trustLabel.classList.remove('hidden');
+    }
+
+    dialog.classList.remove('hidden');
+
+    function cleanup(result) {
+      dialog.classList.add('hidden');
+      btnAllow.removeEventListener('click', onAllow);
+      btnDeny.removeEventListener('click', onDeny);
+      resolve(result);
+    }
+
+    function onAllow() { cleanup({ allowed: true, trust: trustCheckbox.checked }); }
+    function onDeny() { cleanup({ allowed: false, trust: false }); }
+
+    btnAllow.addEventListener('click', onAllow);
+    btnDeny.addEventListener('click', onDeny);
+  });
+}
+
+async function executeToolCall(toolCall) {
+  const { name, arguments: args } = toolCall.function;
+  const parsedArgs = JSON.parse(args);
+
+  // Check trusted list
+  const trustedStr = localStorage.getItem('trusted_tools') || '{}';
+  const trusted = JSON.parse(trustedStr);
+
+  if (!trusted[name]) {
+    const { allowed, trust } = await showConfirmDialog(name, parsedArgs);
+    if (!allowed) return '用户拒绝了此操作。';
+    if (trust) {
+      trusted[name] = true;
+      localStorage.setItem('trusted_tools', JSON.stringify(trusted));
+    }
+  }
+
+  // Execute via preload bridge
+  if (!window.electronAPI) return '此功能需要 Electron 桌面应用环境。';
+
+  try {
+    const api = window.electronAPI;
+    let result;
+    switch (name) {
+      case 'search_files': result = await api.searchFiles(parsedArgs.query); break;
+      case 'read_file': result = await api.readFile(parsedArgs.path); break;
+      case 'write_file': result = await api.writeFile(parsedArgs.path, parsedArgs.content); break;
+      case 'list_dir': result = await api.listDir(parsedArgs.path || ''); break;
+      case 'open_app': result = await api.openApp(parsedArgs.name); break;
+      case 'run_command': {
+        const confirm = await showConfirmDialog('run_command', parsedArgs);
+        if (!confirm.allowed) return '用户拒绝了执行命令。';
+        result = await api.runCommand(parsedArgs.cmd);
+        break;
+      }
+      case 'screenshot': result = await api.screenshot(); break;
+      default: return `未知工具：${name}`;
+    }
+    return JSON.stringify(result);
+  } catch (err) {
+    return `执行失败：${err.message}`;
+  }
 }
 
 export { loadHistory };

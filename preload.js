@@ -1,10 +1,19 @@
 // preload.js — Secure bridge between renderer and Node.js
-// Currently empty; v2.0 computer-control APIs will be exposed here
 
-const { contextBridge } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  // v2.0: file operations, app control, screenshot, etc.
   platform: process.platform,
-  version: '1.0.0'
+  version: '2.0.0',
+
+  // File operations
+  searchFiles: (query) => ipcRenderer.invoke('search-files', query),
+  readFile: (filePath) => ipcRenderer.invoke('read-file', filePath),
+  writeFile: (filePath, content) => ipcRenderer.invoke('write-file', filePath, content),
+  listDir: (dirPath) => ipcRenderer.invoke('list-dir', dirPath),
+
+  // System operations
+  openApp: (name) => ipcRenderer.invoke('open-app', name),
+  runCommand: (cmd) => ipcRenderer.invoke('run-command', cmd),
+  screenshot: () => ipcRenderer.invoke('screenshot'),
 });
