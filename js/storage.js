@@ -1,7 +1,7 @@
 // storage.js — IndexedDB wrapper
 
 const DB_NAME = 'ai-girlfriend';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const MAX_AUTO_MEMORIES = 100;
 
 let db = null;
