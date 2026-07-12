@@ -12,5 +12,8 @@ Thumbs.db
 config.js
 secrets.js
 
-# Dependencies (if any later)
+# Dependencies
 node_modules/
+
+# Build output
+dist/

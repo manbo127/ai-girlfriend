@@ -1,0 +1,32 @@
+{
+  "name": "ai-girlfriend",
+  "version": "1.0.0",
+  "description": "AI 女友桌面应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable",
+    "build:installer": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.ai-girlfriend.app",
+    "productName": "AI 女友",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!docs/**",
+      "!.git/**",
+      "!.superpowers/**",
+      "!dist/**"
+    ],
+    "win": {
+      "icon": "icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}

@@ -16,14 +16,27 @@
 2. 打开网页，填写 API Key 和你的昵称
 3. 开始聊天！
 
-## 部署 (GitHub Pages)
+## 运行方式
+
+### 桌面应用（推荐）
 
 ```bash
-git remote add origin <your-github-repo-url>
-git push -u origin main
+npm install
+npm start
 ```
 
-在 GitHub 仓库 Settings → Pages → Source 选择 `main` 分支，保存即可。
+### 浏览器打开
+
+直接用浏览器打开 `index.html` 即可（ES Modules 需通过 HTTP 服务器访问，如 `npx serve .`）。
+
+## 打包
+
+```bash
+npm run build          # 便携版 exe
+npm run build:installer  # 安装包
+```
+
+打包输出在 `dist/` 目录。
 
 ## 技术栈
 
