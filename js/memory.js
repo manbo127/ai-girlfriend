@@ -99,4 +99,3 @@ export async function addXiaoqiMemory(content) {
 export async function deleteXiaoqiMemory(id) {
   await dbDeleteXiaoqiMemory(id);
 }
-}
