@@ -22,7 +22,7 @@
       "!dist/**"
     ],
     "win": {
-      "icon": "icon.png"
+      "icon": "icon.ico"
     }
   },
   "devDependencies": {

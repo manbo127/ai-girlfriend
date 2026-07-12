@@ -15,6 +15,7 @@ function createWindow() {
     minWidth: 360,
     minHeight: 500,
     title: '小七',
+    icon: path.join(__dirname, 'icon.ico'),
     backgroundColor: '#fff5f6',
     show: false,
     autoHideMenuBar: true,
