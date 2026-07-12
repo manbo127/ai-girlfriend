@@ -16,6 +16,8 @@ import {
   initChat, renderMessage,
   addSystemMessage, loadHistory, getApiKey, setApiKey
 } from './chat.js';
+import { initMood } from './mood.js';
+import { initProactive, destroyProactive } from './proactive.js';
 
 // --- State ---
 let editingTemplateId = null;
@@ -23,13 +25,18 @@ let editingTemplateId = null;
 // --- Init ---
 async function init() {
   await openDB();
+  await initMood();
   await ensurePresetExists();
   initChat();
+  initProactive();
   initPanelEvents();
   await checkSetup();
   await loadHistoryAndGreet();
   await loadSettingsIntoForm();
   await initNotificationsFromSettings();
+  window.addEventListener('beforeunload', () => {
+    destroyProactive();
+  });
 }
 
 // --- Setup Wizard ---
