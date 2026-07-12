@@ -2,11 +2,13 @@
 
 import { getActiveTemplateContent } from './templates.js';
 import { buildMemorySection } from './memory.js';
+import { getMoodDescription } from './mood.js';
 
 const DEEPSEEK_BASE = 'https://api.deepseek.com';
 
 export async function buildSystemPrompt() {
   const template = await getActiveTemplateContent();
+  const moodDesc = getMoodDescription();
   const memory = await buildMemorySection();
 
   const now = new Date();
@@ -17,6 +19,10 @@ export async function buildSystemPrompt() {
   });
 
   let prompt = `${template}
+
+---
+
+${moodDesc}
 
 ---
 
