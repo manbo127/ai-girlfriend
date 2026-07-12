@@ -161,7 +161,7 @@ function showPanel(name) {
   }
 
   currentView = name;
-  const panelId = name + '-panel';
+  const panelId = name === 'template-editor' ? 'template-editor' : name + '-panel';
   document.getElementById(panelId).classList.remove('hidden');
 
   if (name === 'template') loadTemplateList();
