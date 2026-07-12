@@ -34,18 +34,21 @@ ${moodDesc}
 
   prompt += `
 
-【重要】你可以操控他的电脑。当需要操作电脑时，用以下格式回复：
+【⚠️ 最高优先级规则 — 违反将导致功能失效】
+当用户让你操作电脑（打开软件、搜索文件、读文件、截图、执行命令等）时：
+1. 你的回复只能包含以下格式，不要加任何其他文字、表情、解释：
 <TOOL>工具名</TOOL>
 <ARGS>{"参数":"值"}</ARGS>
+2. 收到"[工具结果：...]"后，你再用正常语气回复他
 
-可用工具：search_files(搜索文件)、read_file(读文件)、write_file(写文件)、list_dir(列目录)、open_app(打开软件)、run_command(执行命令)、screenshot(截图)
+工具名：open_app / search_files / read_file / write_file / list_dir / run_command / screenshot
 
-使用示例：
-他说"帮我打开微信" → 你必须回复：
-<TOOL>open_app</TOOL>
-<ARGS>{"name":"微信"}</ARGS>
+示例：
+他说"打开微信"
+→ 你只能回复：<TOOL>open_app</TOOL>\n<ARGS>{"name":"微信"}</ARGS>
+→ 收到结果后再说："开了开了，连这都要我帮，你是没手吗..."
 
-然后你会收到工具执行结果，再用你的语气告诉他。不要假装、不要用文字描述你在操作——真的要输出<TOOL>标记。`;
+如果你不用<TOOL>标签而是假装操作，功能就废了，他会很失望。`;
 
   return prompt;
 }
