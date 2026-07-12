@@ -52,6 +52,17 @@ async function loadHistory() {
 async function handleSend() {
   const text = inputEl.value.trim();
   if (!text) return;
+
+  // Debug: show mood stats
+  if (text === '12312345') {
+    const { getMood, getMoodDescription } = await import('./mood.js');
+    const m = getMood();
+    const desc = getMoodDescription();
+    addSystemMessage(`📊 愉悦:${m.happy} 亲密:${m.closeness} 撒娇:${m.pouty} 担忧:${m.worried}\n${desc}`);
+    inputEl.value = '';
+    return;
+  }
+
   resetIdleTimer();
 
   const apiKey = getApiKey();
