@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 女友</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- 顶栏 -->
+    <header id="topbar">
+      <span id="current-template-name">傲娇毒舌</span>
+      <div id="topbar-actions">
+        <button id="btn-template" title="性格模板">🎭</button>
+        <button id="btn-memory" title="关于你">💝</button>
+        <button id="btn-settings" title="设置">⚙️</button>
+      </div>
+    </header>
+
+    <!-- 聊天主视图 -->
+    <main id="chat-view">
+      <div id="message-list"></div>
+      <div id="typing-indicator" class="hidden">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+      </div>
+    </main>
+
+    <!-- 输入区 -->
+    <footer id="input-area">
+      <input type="text" id="message-input" placeholder="说点什么..." autocomplete="off">
+      <button id="btn-send">发送</button>
+    </footer>
+
+    <!-- 模板管理面板 -->
+    <div id="template-panel" class="slide-panel hidden">
+      <div class="panel-header">
+        <button class="btn-back">← 返回</button>
+        <h2>性格模板</h2>
+      </div>
+      <div class="panel-body">
+        <div id="preset-template-list"></div>
+        <h3>✏️ 自定义模板</h3>
+        <div id="custom-template-list"></div>
+        <button id="btn-new-template" class="primary">+ 新建模板</button>
+      </div>
+    </div>
+
+    <!-- 模板编辑面板 -->
+    <div id="template-editor" class="slide-panel hidden">
+      <div class="panel-header">
+        <button class="btn-back" data-target="template-panel">← 返回</button>
+        <h2>编辑模板</h2>
+      </div>
+      <div class="panel-body">
+        <label>模板名称 <input type="text" id="template-name-input" placeholder="例如：我的专属"></label>
+        <label>性格描述 <textarea id="template-content-input" rows="10" placeholder="描述她的性格、语气、说话风格...&#10;&#10;例如：&#10;你是一个温柔体贴的姐姐型女友..."></textarea></label>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-save-template" class="primary">保存</button>
+          <button id="btn-delete-template" class="danger hidden">删除此模板</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 记忆面板 -->
+    <div id="memory-panel" class="slide-panel hidden">
+      <div class="panel-header">
+        <button class="btn-back">← 返回</button>
+        <h2>关于你</h2>
+      </div>
+      <div class="panel-body">
+        <h3>📋 基本信息</h3>
+        <form id="manual-memory-form">
+          <label>称呼 <input type="text" id="mem-name" placeholder="你的名字或昵称"></label>
+          <label>生日 <input type="text" id="mem-birthday" placeholder="如：1999-05-20"></label>
+          <label>性格 <input type="text" id="mem-personality" placeholder="如：内向、慢热"></label>
+          <label>爱好 <input type="text" id="mem-hobbies" placeholder="如：编程、爬山、咖啡"></label>
+          <label>讨厌 <input type="text" id="mem-dislikes" placeholder="如：香菜、早起"></label>
+          <label>其他 <textarea id="mem-other" rows="3" placeholder="任何想让她知道的..."></textarea></label>
+          <button type="submit" class="primary">保存</button>
+        </form>
+        <h3>🤖 自动记忆（从聊天中学习）</h3>
+        <div id="auto-memory-list"><p style="color:var(--gray-600);font-size:13px;">暂无自动记忆，开始聊天后她会慢慢了解你...</p></div>
+        <button id="btn-clear-auto-memories" class="danger">清空全部自动记忆</button>
+      </div>
+    </div>
+
+    <!-- 设置面板 -->
+    <div id="settings-panel" class="slide-panel hidden">
+      <div class="panel-header">
+        <button class="btn-back">← 返回</button>
+        <h2>设置</h2>
+      </div>
+      <div class="panel-body">
+        <label>DeepSeek API Key <input type="password" id="setting-api-key" placeholder="sk-..."></label>
+        <p style="font-size:12px;color:var(--gray-600);">API Key 仅保存在你的浏览器中，不会上传到任何地方</p>
+        <label>通知提醒 <input type="checkbox" id="setting-notifications"></label>
+        <label>提醒时间 <input type="time" id="setting-notification-time" value="21:00"></label>
+        <button id="btn-save-settings" class="primary">保存设置</button>
+      </div>
+    </div>
+
+    <!-- 首次设置向导 -->
+    <div id="setup-wizard" class="overlay hidden">
+      <div class="wizard-card">
+        <h2>🌸 欢迎</h2>
+        <p>在开始之前，请先完成以下设置：</p>
+        <label>DeepSeek API Key <input type="password" id="wizard-api-key" placeholder="sk-..."></label>
+        <p style="font-size:11px;color:var(--gray-600);">需要 DeepSeek API Key，在 platform.deepseek.com 获取</p>
+        <label>我怎么称呼你？ <input type="text" id="wizard-name" placeholder="你的名字或昵称"></label>
+        <button id="btn-wizard-done">开始聊天 →</button>
+        <p style="font-size:11px;color:var(--gray-600);">所有数据保存在你的浏览器中</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
