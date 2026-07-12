@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Secrets (API keys etc.)
+.env
+*.env
+config.js
+secrets.js
+
+# Dependencies (if any later)
+node_modules/
