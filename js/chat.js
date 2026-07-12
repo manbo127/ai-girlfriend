@@ -9,7 +9,7 @@ import { savePendingTopic } from './storage.js';
 let messageListEl, inputEl, sendBtn, typingEl;
 let conversationHistory = []; // [{role, content}] for API — last N messages
 
-const MAX_CONTEXT_MESSAGES = 10;
+const MAX_CONTEXT_MESSAGES = 40;
 
 function generateId() {
   return 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);

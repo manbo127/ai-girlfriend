@@ -2,7 +2,7 @@
 
 const DB_NAME = 'ai-girlfriend';
 const DB_VERSION = 2;
-const MAX_AUTO_MEMORIES = 50;
+const MAX_AUTO_MEMORIES = 100;
 
 let db = null;
 

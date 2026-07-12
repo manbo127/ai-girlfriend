@@ -58,9 +58,9 @@ export async function buildMemorySection() {
     parts.unshift('## 关于用户的基本信息');
   }
 
-  // Auto memories (recent 20)
+  // Auto memories (recent 50)
   if (autoMemories.length > 0) {
-    const recent = autoMemories.slice(-20);
+    const recent = autoMemories.slice(-50);
     parts.push('## 从聊天中了解到的关于用户的信息');
     recent.forEach((m, i) => {
       parts.push(`${i + 1}. ${m.content}`);
