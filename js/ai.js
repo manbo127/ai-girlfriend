@@ -20,26 +20,17 @@ export async function buildSystemPrompt() {
 
   let prompt = `${template}
 
----
-
 ${moodDesc}
 
----
-
-## 当前时间
-${timeStr}
+现在是 ${timeStr}。
 
 `;
 
   if (memory) {
     prompt += `${memory}
 
----
 `;
   }
-
-  prompt += `
-请以上面的性格设定回复用户。回复要自然、简短，像真人聊天一样。`;
 
   return prompt;
 }
