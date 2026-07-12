@@ -89,31 +89,27 @@ async function handleSend() {
 
   try {
     let message = await aiChat(conversationHistory, apiKey);
-    console.log('[DEBUG] AI response:', JSON.stringify({ content: message.content?.substring(0, 100), tool_calls: message.tool_calls }));
+    console.log('[DEBUG] AI response:', JSON.stringify({ content: message.content?.substring(0, 100), function_call: message.function_call }));
 
-    // Tool calls loop — max 3 rounds
-    let toolRounds = 0;
-    while (message.tool_calls && message.tool_calls.length > 0 && toolRounds < 3) {
-      toolRounds++;
+    // Function call loop — max 3 rounds
+    let funcRounds = 0;
+    while (message.function_call && funcRounds < 3) {
+      funcRounds++;
+      const fc = message.function_call;
 
-      // Add assistant tool_calls to conversation
+      // Add assistant function_call to conversation
+      conversationHistory.push(message);
+
+      addSystemMessage(`🔧 ${fc.name}...`);
+      const result = await executeFunctionCall(fc);
       conversationHistory.push({
-        role: 'assistant',
-        content: message.content || '',
-        tool_calls: message.tool_calls
+        role: 'function',
+        name: fc.name,
+        content: result
       });
 
-      for (const tc of message.tool_calls) {
-        addSystemMessage(`🔧 ${tc.function.name}...`);
-        const result = await executeToolCall(tc);
-        conversationHistory.push({
-          role: 'tool',
-          tool_call_id: tc.id,
-          content: result
-        });
-      }
-
       message = await aiChat(conversationHistory, apiKey);
+      console.log('[DEBUG] AI response (round', funcRounds + 1, '):', JSON.stringify({ content: message.content?.substring(0, 100), function_call: message.function_call }));
     }
 
     hideTyping();
@@ -249,8 +245,8 @@ function showConfirmDialog(toolName, toolArgs) {
   });
 }
 
-async function executeToolCall(toolCall) {
-  const { name, arguments: args } = toolCall.function;
+async function executeFunctionCall(fc) {
+  const { name, arguments: args } = fc;
   const parsedArgs = JSON.parse(args);
 
   // Check trusted list

@@ -50,11 +50,11 @@ export async function chat(messages, apiKey) {
     temperature: 0.8,
     max_tokens: 500,
     stream: false,
-    tools: getTools(),
-    tool_choice: 'auto'
+    functions: getFunctions(),
+    function_call: 'auto'
   };
 
-  console.log('[DEBUG] Sending to DeepSeek with', body.tools.length, 'tools');
+  console.log('[DEBUG] Sending to DeepSeek with', body.functions.length, 'functions');
 
   const response = await fetch(`${DEEPSEEK_BASE}/v1/chat/completions`, {
     method: 'POST',
@@ -116,90 +116,69 @@ export async function extractMemory(conversation, apiKey) {
   return result === 'NONE' ? null : result;
 }
 
-export function getTools() {
+export function getFunctions() {
   return [
     {
-      type: 'function',
-      function: {
-        name: 'search_files',
-        description: '搜索电脑上的文件。传入文件名关键词，返回匹配的文件列表。',
-        parameters: {
-          type: 'object',
-          properties: { query: { type: 'string', description: '搜索关键词' } },
-          required: ['query']
-        }
+      name: 'search_files',
+      description: '搜索电脑上的文件。传入文件名关键词，返回匹配的文件列表。',
+      parameters: {
+        type: 'object',
+        properties: { query: { type: 'string', description: '搜索关键词' } },
+        required: ['query']
       }
     },
     {
-      type: 'function',
-      function: {
-        name: 'read_file',
-        description: '读取指定文件的内容',
-        parameters: {
-          type: 'object',
-          properties: { path: { type: 'string', description: '文件完整路径' } },
-          required: ['path']
-        }
+      name: 'read_file',
+      description: '读取指定文件的内容',
+      parameters: {
+        type: 'object',
+        properties: { path: { type: 'string', description: '文件完整路径' } },
+        required: ['path']
       }
     },
     {
-      type: 'function',
-      function: {
-        name: 'write_file',
-        description: '创建或修改文件',
-        parameters: {
-          type: 'object',
-          properties: {
-            path: { type: 'string', description: '文件路径' },
-            content: { type: 'string', description: '要写入的内容' }
-          },
-          required: ['path', 'content']
-        }
+      name: 'write_file',
+      description: '创建或修改文件',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: '文件路径' },
+          content: { type: 'string', description: '要写入的内容' }
+        },
+        required: ['path', 'content']
       }
     },
     {
-      type: 'function',
-      function: {
-        name: 'list_dir',
-        description: '列出目录中的文件和子目录',
-        parameters: {
-          type: 'object',
-          properties: { path: { type: 'string', description: '目录路径，默认用户主目录' } },
-          required: []
-        }
+      name: 'list_dir',
+      description: '列出目录中的文件和子目录',
+      parameters: {
+        type: 'object',
+        properties: { path: { type: 'string', description: '目录路径，默认用户主目录' } },
+        required: []
       }
     },
     {
-      type: 'function',
-      function: {
-        name: 'open_app',
-        description: '打开电脑上的应用程序',
-        parameters: {
-          type: 'object',
-          properties: { name: { type: 'string', description: '应用名称，如"微信"、"Chrome"' } },
-          required: ['name']
-        }
+      name: 'open_app',
+      description: '打开电脑上的应用程序。当用户让你打开某个软件、启动某个应用时必须使用此函数。',
+      parameters: {
+        type: 'object',
+        properties: { name: { type: 'string', description: '应用名称，如"微信"、"Chrome"、"记事本"' } },
+        required: ['name']
       }
     },
     {
-      type: 'function',
-      function: {
-        name: 'run_command',
-        description: '在终端执行命令。注意：每次执行前会征求用户同意。',
-        parameters: {
-          type: 'object',
-          properties: { cmd: { type: 'string', description: '要执行的命令' } },
-          required: ['cmd']
-        }
+      name: 'run_command',
+      description: '在终端执行命令。每次执行前会征求用户同意。',
+      parameters: {
+        type: 'object',
+        properties: { cmd: { type: 'string', description: '要执行的命令' } },
+        required: ['cmd']
       }
     },
     {
-      type: 'function',
-      function: {
-        name: 'screenshot',
-        description: '截取当前屏幕截图',
-        parameters: { type: 'object', properties: {}, required: [] }
-      }
+      name: 'screenshot',
+      description: '截取当前屏幕截图',
+      parameters: { type: 'object', properties: {}, required: [] }
     }
   ];
 }
