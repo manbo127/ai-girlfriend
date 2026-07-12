@@ -161,8 +161,8 @@ ipcMain.handle('screenshot', async () => {
 const APP_MAP = {
   '微信': ['WeChat', 'wechat'],
   'qq': ['QQ', 'Tencent\\QQ'],
-  '网易云': ['cloudmusic', 'Netease'],
-  '音乐': ['cloudmusic'],
+  '网易云': ['cloudmusic', 'Netease', 'netease', 'CloudMusic'],
+  '音乐': ['cloudmusic', 'Netease', 'QQMusic', 'kugou'],
   '浏览器': ['chrome', 'Chrome', 'firefox', 'Firefox', 'msedge', 'Edge'],
   'chrome': ['chrome', 'Chrome', 'Google\\Chrome'],
   'edge': ['msedge', 'Edge'],
@@ -219,18 +219,11 @@ function searchForExe(dir, searchNames, depth) {
           }
         }
       } else if (entry.isDirectory()) {
-        // Also check if directory name matches — app dirs often contain the exe
+        // Also check if directory name matches — recursively search for any .exe inside
         for (const name of searchNames) {
           if (entryLower.includes(name) || name.includes(entryLower)) {
-            // Search one level deeper for any .exe
-            try {
-              const subEntries = fs.readdirSync(fullPath, { withFileTypes: true });
-              for (const sub of subEntries) {
-                if (sub.isFile() && sub.name.toLowerCase().endsWith('.exe')) {
-                  return path.join(fullPath, sub.name);
-                }
-              }
-            } catch (e) { /* skip */ }
+            const found = searchForExe(fullPath, searchNames, 3); // search up to 3 levels deep
+            if (found) return found;
           }
         }
         const found = searchForExe(fullPath, searchNames, depth - 1);
