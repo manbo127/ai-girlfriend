@@ -94,6 +94,7 @@ ipcMain.handle('open-app', async (event, appName) => {
     const searchDirs = [
       'C:\\Program Files',
       'C:\\Program Files (x86)',
+      'D:\\',
       path.join(os.homedir(), 'AppData\\Local'),
       path.join(os.homedir(), 'AppData\\Roaming'),
     ];
