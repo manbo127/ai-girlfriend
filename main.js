@@ -174,6 +174,77 @@ ipcMain.handle('screenshot', async () => {
   return png.toString('base64');
 });
 
+// --- App Cache ---
+
+function getAppCachePath() {
+  return path.join(os.homedir(), '.ai-girlfriend', 'app_cache.json');
+}
+
+function loadAppCache() {
+  try {
+    const data = fs.readFileSync(getAppCachePath(), 'utf-8');
+    const cached = JSON.parse(data);
+    // Expire after 7 days
+    if (Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000) {
+      return cached.apps || {};
+    }
+  } catch (e) { /* no cache or expired */ }
+  return null;
+}
+
+function saveAppCache(apps) {
+  const logDir = path.join(os.homedir(), '.ai-girlfriend');
+  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir, { recursive: true });
+  fs.writeFileSync(getAppCachePath(), JSON.stringify({ timestamp: Date.now(), apps }), 'utf-8');
+}
+
+function scanForApps() {
+  const scanDirs = [
+    'C:\\Program Files', 'C:\\Program Files (x86)',
+    'D:\\',
+    path.join(os.homedir(), 'AppData\\Local'),
+    path.join(os.homedir(), 'AppData\\Roaming'),
+    path.join(os.homedir(), 'Desktop'),
+  ];
+
+  const apps = {}; // { 'appname_lower': 'full\\path\\to\\app.exe' }
+
+  function scanDir(dir, depth) {
+    if (depth <= 0) return;
+    try {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name.startsWith('$')) continue;
+        const fullPath = path.join(dir, entry.name);
+        try {
+          if (entry.isFile() && entry.name.toLowerCase().endsWith('.exe')) {
+            const exeName = entry.name.replace(/\.exe$/i, '').toLowerCase().replace(/\s/g, '');
+            apps[exeName] = fullPath;
+          } else if (entry.isDirectory()) {
+            scanDir(fullPath, depth - 1);
+          }
+        } catch (e) { /* skip locked files */ }
+      }
+    } catch (e) { /* skip unreadable dirs */ }
+  }
+
+  console.log('[AppCache] Scanning for apps...');
+  for (const dir of scanDirs) {
+    scanDir(dir, 4);
+  }
+  console.log('[AppCache] Found', Object.keys(apps).length, 'apps');
+
+  saveAppCache(apps);
+  return apps;
+}
+
+function getAppCache() {
+  let cache = loadAppCache();
+  if (!cache) {
+    cache = scanForApps();
+  }
+  return cache;
+}
+
 // --- App Finder ---
 
 const APP_MAP = {
@@ -214,12 +285,30 @@ function findExe(appName, dirs, maxDepth = 3) {
     }
   }
 
-  // Fallback: use the original name (works for English app names)
   if (searchNames.length === 0) {
     searchNames.push(lower);
   }
 
-  console.log('[DEBUG] Searching for:', searchNames);
+  // Check app cache first (pre-indexed exe list)
+  const cache = getAppCache();
+  for (const name of searchNames) {
+    if (cache[name]) {
+      console.log('[AppCache] Hit:', name, '→', cache[name]);
+      return cache[name];
+    }
+  }
+  // Also check partial matches in cache
+  for (const [cachedName, cachedPath] of Object.entries(cache)) {
+    for (const name of searchNames) {
+      if (cachedName.includes(name) || name.includes(cachedName)) {
+        console.log('[AppCache] Partial match:', cachedName, '→', cachedPath);
+        return cachedPath;
+      }
+    }
+  }
+
+  // Fallback: live search
+  console.log('[DEBUG] Searching disk for:', searchNames);
   for (const dir of dirs) {
     const found = searchForExe(dir, searchNames, maxDepth);
     if (found) return found;
