@@ -14,7 +14,10 @@ function createWindow() {
     height: 750,
     minWidth: 360,
     minHeight: 500,
-    title: 'AI 女友',
+    title: '小七',
+    backgroundColor: '#fff5f6',
+    show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -23,6 +26,10 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
 
   mainWindow.on('page-title-updated', (e) => {
     e.preventDefault();
