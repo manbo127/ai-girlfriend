@@ -118,12 +118,9 @@ async function handleSend() {
       conversationHistory = conversationHistory.slice(-MAX_CONTEXT_MESSAGES);
     }
 
-    // Auto memory extraction
-    const lastExchange = [
-      { role: 'user', content: text },
-      { role: 'assistant', content: reply }
-    ];
-    extractMemory(lastExchange, apiKey).then(fact => {
+    // Auto memory extraction — only from user's message
+    const userOnly = [{ role: 'user', content: text }];
+    extractMemory(userOnly, apiKey).then(fact => {
       if (fact) {
         addAutoMemory(fact).then(() => {
           addSystemMessage(`💡 已记住：${fact}`);

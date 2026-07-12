@@ -22,6 +22,14 @@ async function init() {
   await openDB();
   await initMood();
   await ensurePresetExists();
+
+  // One-time cleanup of old memories (v1.1 → v2 migration)
+  if (!localStorage.getItem('mem_v2_cleaned')) {
+    await clearAutoMemories();
+    localStorage.setItem('mem_v2_cleaned', '1');
+  }
+
+  await initMood();
   initChat();
   initProactive();
   initPanelEvents();
