@@ -9,7 +9,7 @@ import { savePendingTopic } from './storage.js';
 let messageListEl, inputEl, sendBtn, typingEl;
 let conversationHistory = []; // [{role, content}] for API — last N messages
 
-const MAX_CONTEXT_MESSAGES = 30;
+const MAX_CONTEXT_MESSAGES = 10;
 
 function generateId() {
   return 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
@@ -88,6 +88,11 @@ async function handleSend() {
   sendBtn.disabled = true;
 
   try {
+    // Trim context before sending
+    if (conversationHistory.length > MAX_CONTEXT_MESSAGES) {
+      conversationHistory = conversationHistory.slice(-MAX_CONTEXT_MESSAGES);
+    }
+
     let message = await aiChat(conversationHistory, apiKey);
     console.log('[DEBUG] AI reply:', message.content?.substring(0, 200));
 
