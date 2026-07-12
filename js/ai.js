@@ -64,7 +64,7 @@ export async function chat(messages, apiKey) {
     stream: false
   };
 
-  console.log('[DEBUG] Sending to DeepSeek with', body.functions.length, 'functions');
+  console.log('[DEBUG] Sending to DeepSeek,', messages.length, 'messages');
 
   const response = await fetch(`${DEEPSEEK_BASE}/v1/chat/completions`, {
     method: 'POST',
