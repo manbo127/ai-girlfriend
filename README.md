@@ -1,0 +1,38 @@
+# AI 女友 💕
+
+一个运行在浏览器中的 AI 女友聊天应用。纯前端，数据完全保存在本地。
+
+## 功能
+
+- 💬 **聊天对话** — 通过 DeepSeek API 驱动的 AI 女友
+- 🎭 **性格模板** — 内置傲娇毒舌模板，支持自定义
+- 🧠 **记忆系统** — 手动填写 + 自动从对话中学习
+- 🌅 **时间问候** — 打开网页时根据时间主动问候
+- 🔔 **通知提醒** — 可选的浏览器定时提醒
+
+## 使用方法
+
+1. 在 [DeepSeek Platform](https://platform.deepseek.com) 获取 API Key
+2. 打开网页，填写 API Key 和你的昵称
+3. 开始聊天！
+
+## 部署 (GitHub Pages)
+
+```bash
+git remote add origin <your-github-repo-url>
+git push -u origin main
+```
+
+在 GitHub 仓库 Settings → Pages → Source 选择 `main` 分支，保存即可。
+
+## 技术栈
+
+- 纯 HTML + CSS + Vanilla JS (ES Modules)
+- DeepSeek API (OpenAI 兼容格式)
+- IndexedDB 本地存储
+- 无框架、无构建工具、无后端
+
+## 隐私
+
+所有数据（聊天记录、记忆、设置）仅保存在你的浏览器 IndexedDB 中。
+API Key 仅保存在 localStorage，不会上传到任何第三方服务器。
