@@ -1,7 +1,7 @@
 {
-  "name": "ai-girlfriend",
+  "name": "小七",
   "version": "1.0.0",
-  "description": "AI 女友桌面应用",
+  "description": "小七 — 你的桌面女友",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -10,7 +10,7 @@
   },
   "build": {
     "appId": "com.ai-girlfriend.app",
-    "productName": "AI 女友",
+    "productName": "小七",
     "directories": {
       "output": "dist"
     },
