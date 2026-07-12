@@ -104,33 +104,37 @@ ipcMain.handle('open-app', async (event, appName) => {
         if (err) console.error('open-app error:', err);
       });
       logOperation('open-app', appName, 'found: ' + found);
+      return `已打开 ${appName}（${found}）`;
     } else {
-      // Fallback: use 'where' to find exe on PATH, then 'start' as last resort
-      exec(`where "${appName}"`, (err, stdout) => {
-        if (!err && stdout.trim()) {
-          const exePath = stdout.trim().split('\n')[0].trim();
-          exec(`"${exePath}"`, (e) => { if (e) console.error('open-app error:', e); });
-          logOperation('open-app', appName, 'where found: ' + exePath);
-        } else {
-          exec(`start "" "${appName}"`, (e) => {
-            if (e) console.error('open-app error:', e);
-          });
-          logOperation('open-app', appName, 'fallback start (not found)');
-        }
+      // Fallback: use 'where' to find exe on PATH
+      const whereResult = await new Promise((resolve) => {
+        exec(`where "${appName}"`, (err, stdout) => {
+          if (!err && stdout.trim()) {
+            const exePath = stdout.trim().split('\n')[0].trim();
+            exec(`"${exePath}"`, (e) => { if (e) console.error('open-app error:', e); });
+            logOperation('open-app', appName, 'where found: ' + exePath);
+            resolve(`已打开 ${appName}（${exePath}）`);
+          } else {
+            logOperation('open-app', appName, 'not found');
+            resolve(`未找到应用 "${appName}"。请确认应用已安装，或尝试在设置中配置应用路径。`);
+          }
+        });
       });
+      return whereResult;
     }
   } else if (platform === 'darwin') {
     exec(`open -a "${appName}"`, (err) => {
       if (err) console.error('open-app error:', err);
     });
     logOperation('open-app', appName, 'ok');
+    return `已打开 ${appName}`;
   } else {
     exec(appName, (err) => {
       if (err) console.error('open-app error:', err);
     });
     logOperation('open-app', appName, 'linux');
+    return `已尝试打开 ${appName}`;
   }
-  return true;
 });
 
 const DANGEROUS_COMMANDS = ['rm -rf', 'del /f', 'format', 'mkfs', 'dd if=', ':(){', 'shutdown', 'reboot', 'chmod 777 /'];
