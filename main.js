@@ -158,28 +158,82 @@ ipcMain.handle('screenshot', async () => {
 
 // --- App Finder ---
 
+const APP_MAP = {
+  '微信': ['WeChat', 'wechat'],
+  'qq': ['QQ', 'Tencent\\QQ'],
+  '网易云': ['cloudmusic', 'Netease'],
+  '音乐': ['cloudmusic'],
+  '浏览器': ['chrome', 'Chrome', 'firefox', 'Firefox', 'msedge', 'Edge'],
+  'chrome': ['chrome', 'Chrome', 'Google\\Chrome'],
+  'edge': ['msedge', 'Edge'],
+  'vscode': ['Code', 'Microsoft VS Code'],
+  'visual studio code': ['Code'],
+  'wps': ['wps', 'WPS'],
+  'word': ['WINWORD', 'Microsoft Office'],
+  'excel': ['EXCEL', 'Microsoft Office'],
+  '记事本': ['notepad', 'Notepad'],
+  '计算器': ['calc', 'Calculator'],
+  '终端': ['cmd', 'Windows Terminal', 'wt'],
+  'powershell': ['powershell', 'pwsh'],
+  'steam': ['steam', 'Steam'],
+  '钉钉': ['DingTalk', 'dingtalk'],
+  '腾讯会议': ['wemeet', 'Tencent\\WeMeet'],
+  '飞书': ['feishu', 'Lark'],
+  'qq音乐': ['QQMusic'],
+  '酷狗': ['kugou', 'KuGou'],
+  '百度网盘': ['BaiduNetdisk', 'baidunetdisk'],
+  '迅雷': ['thunder', 'Thunder'],
+};
+
 function findExe(appName, dirs, maxDepth = 2) {
+  // Try mapping first
   const lower = appName.toLowerCase().replace(/\s/g, '');
+  let searchNames = [lower];
+
+  for (const [cnName, exeList] of Object.entries(APP_MAP)) {
+    if (lower.includes(cnName) || cnName.includes(lower)) {
+      searchNames.push(...exeList.map(e => e.toLowerCase().replace(/\s/g, '')));
+    }
+  }
+
   for (const dir of dirs) {
-    const found = searchForExe(dir, lower, maxDepth);
+    const found = searchForExe(dir, searchNames, maxDepth);
     if (found) return found;
   }
   return null;
 }
 
-function searchForExe(dir, lowerName, depth) {
+function searchForExe(dir, searchNames, depth) {
   if (depth <= 0) return null;
   try {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
       const fullPath = path.join(dir, entry.name);
-      if (entry.isFile() && entry.name.toLowerCase().endsWith('.exe')) {
-        const exeLower = entry.name.toLowerCase().replace('.exe', '').replace(/\s/g, '');
-        if (exeLower.includes(lowerName) || lowerName.includes(exeLower)) {
-          return fullPath;
+      const entryLower = entry.name.toLowerCase().replace(/\s/g, '');
+
+      if (entry.isFile() && entryLower.endsWith('.exe')) {
+        const exeName = entryLower.replace('.exe', '');
+        for (const name of searchNames) {
+          if (exeName.includes(name) || name.includes(exeName) || entryLower.includes(name)) {
+            return fullPath;
+          }
         }
       } else if (entry.isDirectory()) {
-        const found = searchForExe(fullPath, lowerName, depth - 1);
+        // Also check if directory name matches — app dirs often contain the exe
+        for (const name of searchNames) {
+          if (entryLower.includes(name) || name.includes(entryLower)) {
+            // Search one level deeper for any .exe
+            try {
+              const subEntries = fs.readdirSync(fullPath, { withFileTypes: true });
+              for (const sub of subEntries) {
+                if (sub.isFile() && sub.name.toLowerCase().endsWith('.exe')) {
+                  return path.join(fullPath, sub.name);
+                }
+              }
+            } catch (e) { /* skip */ }
+          }
+        }
+        const found = searchForExe(fullPath, searchNames, depth - 1);
         if (found) return found;
       }
     }
