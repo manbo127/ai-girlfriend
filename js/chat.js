@@ -89,6 +89,7 @@ async function handleSend() {
 
   try {
     let message = await aiChat(conversationHistory, apiKey);
+    console.log('[DEBUG] AI reply:', message.content?.substring(0, 200));
 
     // Parse <TOOL>...</TOOL> <ARGS>...</ARGS> tags — max 3 rounds
     let toolRounds = 0;
