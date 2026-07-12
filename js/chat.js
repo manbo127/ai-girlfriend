@@ -248,16 +248,23 @@ async function classifyAndExecute(userText, apiKey) {
     const { tool, args } = JSON.parse(jsonMatch[0]);
     console.log('[DEBUG] Classified tool:', tool, args);
 
-    // Confirm with user
-    const { allowed, trust } = await showConfirmDialog(tool, args);
+    // Check if already trusted
+    const trustedStr = localStorage.getItem('trusted_tools') || '{}';
+    const trusted = JSON.parse(trustedStr);
+
+    let allowed = false;
+    if (trusted[tool]) {
+      allowed = true; // skip dialog for trusted tools
+    } else {
+      const result = await showConfirmDialog(tool, args);
+      allowed = result.allowed;
+      if (result.trust) {
+        trusted[tool] = true;
+        localStorage.setItem('trusted_tools', JSON.stringify(trusted));
+      }
+    }
     if (!allowed) {
       return { name: tool, result: '用户拒绝了此操作。' };
-    }
-    if (trust) {
-      const trustedStr = localStorage.getItem('trusted_tools') || '{}';
-      const trusted = JSON.parse(trustedStr);
-      trusted[tool] = true;
-      localStorage.setItem('trusted_tools', JSON.stringify(trusted));
     }
 
     // Execute
