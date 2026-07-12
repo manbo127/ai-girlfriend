@@ -145,6 +145,17 @@ export function renderMessage(msg) {
   const wrapper = document.createElement('div');
   wrapper.className = `message ${msg.role}`;
 
+  // Avatar (not for system messages)
+  if (msg.role !== 'system') {
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = msg.role === 'assistant' ? '🐱' : '😎';
+    wrapper.appendChild(avatar);
+  }
+
+  const bubbleWrap = document.createElement('div');
+  bubbleWrap.className = 'bubble-wrap';
+
   const bubble = document.createElement('div');
   bubble.className = 'bubble';
   bubble.textContent = msg.content;
@@ -153,8 +164,9 @@ export function renderMessage(msg) {
   time.className = 'time';
   time.textContent = formatTime(msg.timestamp);
 
-  wrapper.appendChild(bubble);
-  wrapper.appendChild(time);
+  bubbleWrap.appendChild(bubble);
+  bubbleWrap.appendChild(time);
+  wrapper.appendChild(bubbleWrap);
   messageListEl.appendChild(wrapper);
   scrollToBottom();
 }

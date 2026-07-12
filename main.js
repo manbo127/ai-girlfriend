@@ -10,10 +10,10 @@ let mainWindow = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 420,
-    height: 750,
-    minWidth: 360,
-    minHeight: 500,
+    width: 460,
+    height: 780,
+    minWidth: 380,
+    minHeight: 600,
     title: '小七',
     icon: path.join(__dirname, 'icon.ico'),
     backgroundColor: '#fff5f6',
