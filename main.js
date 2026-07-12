@@ -89,18 +89,39 @@ ipcMain.handle('list-dir', async (event, dirPath) => {
 
 ipcMain.handle('open-app', async (event, appName) => {
   const platform = process.platform;
-  let cmd;
   if (platform === 'win32') {
-    cmd = `start "" "${appName}"`;
+    // Search common install locations for matching .exe
+    const searchDirs = [
+      'C:\\Program Files',
+      'C:\\Program Files (x86)',
+      path.join(os.homedir(), 'AppData\\Local'),
+      path.join(os.homedir(), 'AppData\\Roaming'),
+    ];
+    const found = findExe(appName, searchDirs);
+
+    if (found) {
+      exec(`"${found}"`, (err) => {
+        if (err) console.error('open-app error:', err);
+      });
+      logOperation('open-app', appName, 'found: ' + found);
+    } else {
+      // Fallback: try start command
+      exec(`start "" "${appName}"`, (err) => {
+        if (err) console.error('open-app error:', err);
+      });
+      logOperation('open-app', appName, 'fallback start');
+    }
   } else if (platform === 'darwin') {
-    cmd = `open -a "${appName}"`;
+    exec(`open -a "${appName}"`, (err) => {
+      if (err) console.error('open-app error:', err);
+    });
+    logOperation('open-app', appName, 'ok');
   } else {
-    cmd = appName;
+    exec(appName, (err) => {
+      if (err) console.error('open-app error:', err);
+    });
+    logOperation('open-app', appName, 'linux');
   }
-  exec(cmd, (err) => {
-    if (err) console.error('open-app error:', err);
-  });
-  logOperation('open-app', appName, 'ok');
   return true;
 });
 
@@ -134,6 +155,37 @@ ipcMain.handle('screenshot', async () => {
   logOperation('screenshot', '', png.length + ' bytes');
   return png.toString('base64');
 });
+
+// --- App Finder ---
+
+function findExe(appName, dirs, maxDepth = 2) {
+  const lower = appName.toLowerCase().replace(/\s/g, '');
+  for (const dir of dirs) {
+    const found = searchForExe(dir, lower, maxDepth);
+    if (found) return found;
+  }
+  return null;
+}
+
+function searchForExe(dir, lowerName, depth) {
+  if (depth <= 0) return null;
+  try {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isFile() && entry.name.toLowerCase().endsWith('.exe')) {
+        const exeLower = entry.name.toLowerCase().replace('.exe', '').replace(/\s/g, '');
+        if (exeLower.includes(lowerName) || lowerName.includes(exeLower)) {
+          return fullPath;
+        }
+      } else if (entry.isDirectory()) {
+        const found = searchForExe(fullPath, lowerName, depth - 1);
+        if (found) return found;
+      }
+    }
+  } catch (e) { /* skip */ }
+  return null;
+}
 
 // --- Safety ---
 
