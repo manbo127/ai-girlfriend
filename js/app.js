@@ -21,7 +21,6 @@ import { initProactive, destroyProactive } from './proactive.js';
 // --- Init ---
 async function init() {
   await openDB();
-  await initMood();
   await ensurePresetExists();
 
   // One-time cleanup of old memories
