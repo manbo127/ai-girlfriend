@@ -93,33 +93,17 @@ async function handleSend() {
       conversationHistory = conversationHistory.slice(-MAX_CONTEXT_MESSAGES);
     }
 
-    let message = await aiChat(conversationHistory, apiKey);
-    console.log('[DEBUG] AI reply:', message.content?.substring(0, 200));
-
-    // Parse <TOOL>...</TOOL> <ARGS>...</ARGS> tags — max 3 rounds
-    let toolRounds = 0;
-    while (toolRounds < 3) {
-      const toolMatch = message.content?.match(/<TOOL>(\w+)<\/TOOL>/);
-      const argsMatch = message.content?.match(/<ARGS>({[\s\S]*?})<\/ARGS>/);
-      if (!toolMatch) break;
-
-      toolRounds++;
-      const toolName = toolMatch[1];
-      const toolArgs = argsMatch ? argsMatch[1] : '{}';
-      console.log('[DEBUG] Tool call:', toolName, toolArgs);
-
-      // Add assistant message to conversation
-      conversationHistory.push({ role: 'assistant', content: message.content });
-
-      addSystemMessage(`🔧 ${toolName}...`);
-      const result = await executeToolByName(toolName, toolArgs);
+    // Step 1: Check if user message needs a tool (separate classification call)
+    const toolResult = await classifyAndExecute(text, apiKey);
+    if (toolResult) {
       conversationHistory.push({
         role: 'user',
-        content: `[工具结果：${toolName}]\n${result}\n\n请用你的语气告诉他结果。`
+        content: `[工具结果：${toolResult.name}]\n${toolResult.result}\n\n请用你的语气告诉他结果，要自然。`
       });
-
-      message = await aiChat(conversationHistory, apiKey);
     }
+
+    // Step 2: Get AI response (may include tool result context)
+    let message = await aiChat(conversationHistory, apiKey);
 
     hideTyping();
 
@@ -211,6 +195,81 @@ export function resetIdleTimer() {
   document.dispatchEvent(new CustomEvent('user-activity'));
 }
 
+// --- Tool Classification & Execution ---
+
+async function classifyAndExecute(userText, apiKey) {
+  // Quick keyword pre-check to avoid unnecessary API calls
+  const toolKeywords = ['打开', '启动', '运行', '搜', '找', '读', '写', '存', '截图', '截屏',
+    '列出', '浏览', '看看', '看看.*有', '帮我', '桌面.*什么', '文件.*在哪'];
+  const hasKeyword = toolKeywords.some(k => new RegExp(k).test(userText));
+  if (!hasKeyword) return null;
+
+  // Ask DeepSeek to classify
+  const classifyBody = {
+    model: 'deepseek-chat',
+    messages: [
+      {
+        role: 'system',
+        content: `判断用户消息是否需要操作电脑。如果需要，返回JSON；如果不需要，返回"NONE"。
+
+可用工具：open_app(打开软件, 参数name)、search_files(搜索文件, 参数query)、read_file(读文件, 参数path)、write_file(写文件, 参数path+content)、list_dir(列目录, 参数path可选)、screenshot(截图, 无参数)、run_command(执行命令, 参数cmd)
+
+返回格式示例：
+{"tool":"open_app","args":{"name":"微信"}}
+如果不需要工具，只回复：NONE`
+      },
+      { role: 'user', content: userText }
+    ],
+    temperature: 0.1,
+    max_tokens: 150,
+    stream: false
+  };
+
+  try {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(classifyBody)
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (!text || text === 'NONE') return null;
+
+    // Parse JSON from response (may have markdown wrapping)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    const { tool, args } = JSON.parse(jsonMatch[0]);
+    console.log('[DEBUG] Classified tool:', tool, args);
+
+    // Confirm with user
+    const { allowed, trust } = await showConfirmDialog(tool, args);
+    if (!allowed) {
+      return { name: tool, result: '用户拒绝了此操作。' };
+    }
+    if (trust) {
+      const trustedStr = localStorage.getItem('trusted_tools') || '{}';
+      const trusted = JSON.parse(trustedStr);
+      trusted[tool] = true;
+      localStorage.setItem('trusted_tools', JSON.stringify(trusted));
+    }
+
+    // Execute
+    const result = await executeToolByName(tool, args);
+    return { name: tool, result };
+
+  } catch (e) {
+    console.warn('Tool classification failed:', e);
+    return null;
+  }
+}
+
 // --- Tool Confirmation & Execution ---
 
 const TOOL_ICONS = { search_files: '🔍', read_file: '📄', write_file: '✏️', list_dir: '📁', open_app: '🚀', run_command: '⚡', screenshot: '📸' };
@@ -254,40 +313,20 @@ function showConfirmDialog(toolName, toolArgs) {
   });
 }
 
-async function executeToolByName(name, argsJson) {
-  const parsedArgs = JSON.parse(argsJson);
-
-  // Check trusted list
-  const trustedStr = localStorage.getItem('trusted_tools') || '{}';
-  const trusted = JSON.parse(trustedStr);
-
-  if (!trusted[name]) {
-    const { allowed, trust } = await showConfirmDialog(name, parsedArgs);
-    if (!allowed) return '用户拒绝了此操作。';
-    if (trust) {
-      trusted[name] = true;
-      localStorage.setItem('trusted_tools', JSON.stringify(trusted));
-    }
-  }
-
-  // Execute via preload bridge
+async function executeToolByName(name, args) {
+  // Execute via preload bridge (trust check already done in classifyAndExecute)
   if (!window.electronAPI) return '此功能需要 Electron 桌面应用环境。';
 
   try {
     const api = window.electronAPI;
     let result;
     switch (name) {
-      case 'search_files': result = await api.searchFiles(parsedArgs.query); break;
-      case 'read_file': result = await api.readFile(parsedArgs.path); break;
-      case 'write_file': result = await api.writeFile(parsedArgs.path, parsedArgs.content); break;
-      case 'list_dir': result = await api.listDir(parsedArgs.path || ''); break;
-      case 'open_app': result = await api.openApp(parsedArgs.name); break;
-      case 'run_command': {
-        const confirm = await showConfirmDialog('run_command', parsedArgs);
-        if (!confirm.allowed) return '用户拒绝了执行命令。';
-        result = await api.runCommand(parsedArgs.cmd);
-        break;
-      }
+      case 'search_files': result = await api.searchFiles(args.query); break;
+      case 'read_file': result = await api.readFile(args.path); break;
+      case 'write_file': result = await api.writeFile(args.path, args.content); break;
+      case 'list_dir': result = await api.listDir(args.path || ''); break;
+      case 'open_app': result = await api.openApp(args.name); break;
+      case 'run_command': result = await api.runCommand(args.cmd); break;
       case 'screenshot': result = await api.screenshot(); break;
       default: return `未知工具：${name}`;
     }
