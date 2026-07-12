@@ -3,6 +3,8 @@
 import { chat as aiChat, extractMemory } from './ai.js';
 import { addAutoMemory } from './memory.js';
 import { addMessage, getMessages } from './storage.js';
+import { updateMood } from './mood.js';
+import { savePendingTopic } from './storage.js';
 
 let messageListEl, inputEl, sendBtn, typingEl;
 let conversationHistory = []; // [{role, content}] for API — last N messages
@@ -46,6 +48,7 @@ async function loadHistory() {
 async function handleSend() {
   const text = inputEl.value.trim();
   if (!text) return;
+  resetIdleTimer();
 
   const apiKey = getApiKey();
   if (!apiKey) {
@@ -58,6 +61,26 @@ async function handleSend() {
   renderMessage(userMsg);
   await addMessage(userMsg);
   conversationHistory.push({ role: 'user', content: text });
+
+  // Analyze user message sentiment and update mood (simple keyword approach)
+  const positiveWords = ['哈哈', '开心', '谢谢', '喜欢', '好棒', '厉害', '爱', '想你', '棒', '太好了'];
+  const negativeWords = ['烦', '累', '难过', '压力', '忙', '不开心', '生气', '焦虑', '失眠', '头疼'];
+
+  const hasPositive = positiveWords.some(w => text.includes(w));
+  const hasNegative = negativeWords.some(w => text.includes(w));
+
+  const moodChanges = {};
+  if (hasPositive) {
+    moodChanges.happy = 5;
+    moodChanges.closeness = 3;
+  } else if (hasNegative) {
+    moodChanges.worried = 10;
+    moodChanges.happy = -5;
+  } else {
+    moodChanges.happy = 2;
+  }
+  updateMood(moodChanges);
+
   inputEl.value = '';
 
   // Typing...
@@ -88,6 +111,12 @@ async function handleSend() {
         addAutoMemory(fact).then(() => {
           addSystemMessage(`💡 已记住：${fact}`);
         });
+      }
+      // Detect pending topic from user's last message
+      const topicWords = ['面试', '考试', '出差', '旅行', '要去', '打算', '准备', '计划', '明天', '下次', '周末', '约会', '项目', '答辩', '搬家', '看病'];
+      const hasTopic = topicWords.some(w => text.includes(w));
+      if (hasTopic) {
+        savePendingTopic(text.substring(0, 100));
       }
     }).catch(() => {});
 
@@ -143,6 +172,11 @@ export function getApiKey() {
 
 export function setApiKey(key) {
   localStorage.setItem('deepseek_api_key', key);
+}
+
+export function resetIdleTimer() {
+  // Will be wired by proactive.js — just declare the hook
+  document.dispatchEvent(new CustomEvent('user-activity'));
 }
 
 export { loadHistory };
