@@ -1,7 +1,7 @@
 // storage.js — IndexedDB wrapper
 
 const DB_NAME = 'ai-girlfriend';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const MAX_AUTO_MEMORIES = 50;
 
 let db = null;
@@ -30,6 +30,12 @@ export function openDB() {
       }
       if (!db.objectStoreNames.contains('settings')) {
         db.createObjectStore('settings', { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains('mood')) {
+        db.createObjectStore('mood', { keyPath: 'key' });
+      }
+      if (!db.objectStoreNames.contains('pendingTopic')) {
+        db.createObjectStore('pendingTopic', { keyPath: 'key' });
       }
     };
 
@@ -189,5 +195,67 @@ export function getSettings() {
       }
     };
     request.onerror = () => reject(request.error);
+  });
+}
+
+// --- Mood ---
+const MOOD_KEY = 'current';
+
+export function saveMood(mood) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('mood', 'readwrite');
+    tx.objectStore('mood').put({ key: MOOD_KEY, ...mood });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export function getMood() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('mood', 'readonly');
+    const request = tx.objectStore('mood').get(MOOD_KEY);
+    request.onsuccess = () => {
+      const result = request.result;
+      if (result) {
+        const { key, ...data } = result;
+        resolve(data);
+      } else {
+        resolve({ happy: 50, closeness: 30, pouty: 20, worried: 10 });
+      }
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// --- Pending Topic ---
+const TOPIC_KEY = 'current';
+
+export function savePendingTopic(topic) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pendingTopic', 'readwrite');
+    tx.objectStore('pendingTopic').put({ key: TOPIC_KEY, topic, timestamp: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export function getPendingTopic() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pendingTopic', 'readonly');
+    const request = tx.objectStore('pendingTopic').get(TOPIC_KEY);
+    request.onsuccess = () => {
+      const result = request.result;
+      resolve(result ? result.topic : null);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function clearPendingTopic() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('pendingTopic', 'readwrite');
+    tx.objectStore('pendingTopic').delete(TOPIC_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
