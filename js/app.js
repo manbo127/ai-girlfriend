@@ -10,7 +10,7 @@ import {
 import { getTimeGreeting } from './greeting.js';
 import { isSupported, requestPermission, schedule, cancel, getPermission } from './notifications.js';
 import {
-  initChat, renderMessage,
+  initChat, renderMessage, clearContext,
   addSystemMessage, loadHistory, getApiKey, setApiKey
 } from './chat.js';
 import { initMood } from './mood.js';
@@ -171,6 +171,17 @@ function initPanelEvents() {
     }
 
     addSystemMessage('✅ 设置已保存');
+    showPanel('chat');
+  });
+
+  // Clear chat
+  document.getElementById('btn-clear-chat').addEventListener('click', async () => {
+    if (!confirm('确定清除所有聊天记录吗？长期记忆不会被删除。')) return;
+    const { clearMessages } = await import('./storage.js');
+    await clearMessages();
+    clearContext();
+    document.getElementById('message-list').innerHTML = '';
+    addSystemMessage('🗑️ 聊天记录已清除');
     showPanel('chat');
   });
 }

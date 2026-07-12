@@ -9,6 +9,10 @@ import { savePendingTopic } from './storage.js';
 let messageListEl, inputEl, sendBtn, typingEl;
 let conversationHistory = []; // [{role, content}] for API — last N messages
 
+export function clearContext() {
+  conversationHistory = [];
+}
+
 const MAX_CONTEXT_MESSAGES = 40;
 
 function generateId() {

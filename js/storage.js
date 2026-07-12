@@ -86,6 +86,15 @@ export function getMessages(limit = 200) {
   });
 }
 
+export function clearMessages() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('messages', 'readwrite');
+    tx.objectStore('messages').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 // --- Manual Memory ---
 const SINGLETON_KEY = 'current';
 
