@@ -89,6 +89,7 @@ async function handleSend() {
 
   try {
     let message = await aiChat(conversationHistory, apiKey);
+    console.log('[DEBUG] AI response:', JSON.stringify({ content: message.content?.substring(0, 100), tool_calls: message.tool_calls }));
 
     // Tool calls loop — max 3 rounds
     let toolRounds = 0;
