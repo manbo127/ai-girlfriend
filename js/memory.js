@@ -6,6 +6,9 @@ import {
   getAutoMemories as dbGetAutoMemories,
   deleteAutoMemory as dbDeleteAutoMemory,
   clearAutoMemories as dbClearAutoMemories,
+  addXiaoqiMemory as dbAddXiaoqiMemory,
+  getXiaoqiMemories as dbGetXiaoqiMemories,
+  deleteXiaoqiMemory as dbDeleteXiaoqiMemory,
 } from './storage.js';
 
 // --- Manual Memory ---
@@ -67,5 +70,33 @@ export async function buildMemorySection() {
     });
   }
 
+  // Xiaoqi's memories
+  const xiaoqiMemories = await getXiaoqiMemories();
+  if (xiaoqiMemories.length > 0) {
+    parts.push('## 关于小七（你自己）的信息');
+    xiaoqiMemories.forEach((m, i) => {
+      parts.push(`${i + 1}. ${m.content}`);
+    });
+  }
+
   return parts.join('\n');
+}
+
+// --- Xiaoqi Memories ---
+export async function getXiaoqiMemories() {
+  return await dbGetXiaoqiMemories();
+}
+
+export async function addXiaoqiMemory(content) {
+  const memory = {
+    id: 'xq-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+    content,
+    timestamp: Date.now()
+  };
+  await dbAddXiaoqiMemory(memory);
+}
+
+export async function deleteXiaoqiMemory(id) {
+  await dbDeleteXiaoqiMemory(id);
+}
 }

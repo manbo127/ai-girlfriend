@@ -4,7 +4,8 @@ import { openDB } from './storage.js';
 import { ensurePresetExists } from './templates.js';
 import {
   getManualFields, saveManualFields,
-  getAutoMemories, deleteAutoMemory, clearAutoMemories
+  getAutoMemories, deleteAutoMemory, clearAutoMemories,
+  getXiaoqiMemories, addXiaoqiMemory, deleteXiaoqiMemory
 } from './memory.js';
 import { getTimeGreeting } from './greeting.js';
 import { isSupported, requestPermission, schedule, cancel, getPermission } from './notifications.js';
@@ -23,10 +24,21 @@ async function init() {
   await initMood();
   await ensurePresetExists();
 
-  // One-time cleanup of old memories (v1.1 → v2 migration)
+  // One-time cleanup of old memories
   if (!localStorage.getItem('mem_v2_cleaned')) {
     await clearAutoMemories();
     localStorage.setItem('mem_v2_cleaned', '1');
+  }
+
+  // Seed xiaoqi memories if empty
+  const xqMemories = await getXiaoqiMemories();
+  if (xqMemories.length === 0) {
+    await addXiaoqiMemory('生日是2005年12月6日，20岁');
+    await addXiaoqiMemory('美院数字媒体专业大三学生');
+    await addXiaoqiMemory('养了一只橘猫叫黄焖鸡');
+    await addXiaoqiMemory('和他高中同班，高二分班认识的，经常问他理科题目、抄他作业');
+    await addXiaoqiMemory('他的生日是2005年12月7日，比他早一天，老逗他说"叫姐姐"');
+    await addXiaoqiMemory('嘴笨不会撒娇，被夸就脸红骂人');
   }
 
   await initMood();
@@ -120,6 +132,21 @@ function initPanelEvents() {
     await loadAutoMemoryList();
   });
 
+  // Xiaoqi memories
+  document.getElementById('btn-add-xiaoqi-memory').addEventListener('click', async () => {
+    const input = document.getElementById('xiaoqi-memory-input');
+    const text = input.value.trim();
+    if (!text) return;
+    await addXiaoqiMemory(text);
+    input.value = '';
+    await loadXiaoqiMemoryList();
+  });
+  document.getElementById('xiaoqi-memory-input').addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      document.getElementById('btn-add-xiaoqi-memory').click();
+    }
+  });
+
   // Settings panel
   document.getElementById('btn-save-settings').addEventListener('click', async () => {
     const apiKey = document.getElementById('setting-api-key').value.trim();
@@ -159,7 +186,7 @@ function showPanel(name) {
   const el = document.getElementById(name + '-panel');
   if (el) el.classList.remove('hidden');
 
-  if (name === 'memory') loadMemoryPanel();
+  if (name === 'memory') { loadMemoryPanel(); loadXiaoqiMemoryList(); }
   if (name === 'settings') loadSettingsIntoForm();
 }
 
@@ -197,6 +224,30 @@ async function loadAutoMemoryList() {
     item.querySelector('.btn-delete').addEventListener('click', async () => {
       await deleteAutoMemory(m.id);
       await loadAutoMemoryList();
+    });
+    list.appendChild(item);
+  });
+}
+
+async function loadXiaoqiMemoryList() {
+  const list = document.getElementById('xiaoqi-memory-list');
+  const memories = await getXiaoqiMemories();
+  if (memories.length === 0) {
+    list.innerHTML = '<p style="color:var(--gray-600);font-size:13px;">暂无关于小七的额外记忆</p>';
+    return;
+  }
+  list.innerHTML = '';
+  memories.reverse();
+  memories.forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'memory-item';
+    item.innerHTML = `
+      <span class="content">${escapeHtml(m.content)}</span>
+      <button class="btn-delete">×</button>
+    `;
+    item.querySelector('.btn-delete').addEventListener('click', async () => {
+      await deleteXiaoqiMemory(m.id);
+      await loadXiaoqiMemoryList();
     });
     list.appendChild(item);
   });

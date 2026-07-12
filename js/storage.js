@@ -32,6 +32,10 @@ function upgradeDB(db) {
   if (!db.objectStoreNames.contains('pendingTopic')) {
     db.createObjectStore('pendingTopic', { keyPath: 'key' });
   }
+  if (!db.objectStoreNames.contains('xiaoqiMemories')) {
+    const store = db.createObjectStore('xiaoqiMemories', { keyPath: 'id' });
+    store.createIndex('timestamp', 'timestamp', { unique: false });
+  }
 }
 
 export function openDB() {
@@ -264,6 +268,34 @@ export function clearPendingTopic() {
   return new Promise((resolve, reject) => {
     const tx = db.transaction('pendingTopic', 'readwrite');
     tx.objectStore('pendingTopic').delete(TOPIC_KEY);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// --- Xiaoqi Memories ---
+export function addXiaoqiMemory(memory) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('xiaoqiMemories', 'readwrite');
+    tx.objectStore('xiaoqiMemories').add(memory);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export function getXiaoqiMemories() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('xiaoqiMemories', 'readonly');
+    const request = tx.objectStore('xiaoqiMemories').index('timestamp').getAll();
+    request.onsuccess = () => resolve(request.result || []);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function deleteXiaoqiMemory(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('xiaoqiMemories', 'readwrite');
+    tx.objectStore('xiaoqiMemories').delete(id);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
