@@ -4,7 +4,7 @@ import { openDB } from './storage.js';
 import {
   getPresetTemplate, getCustomTemplates, saveCustomTemplate,
   deleteCustomTemplate, getActiveTemplateId, setActiveTemplateId,
-  getActiveTemplateContent, ensurePresetExists
+  ensurePresetExists
 } from './templates.js';
 import {
   getManualFields, saveManualFields,
@@ -18,7 +18,6 @@ import {
 } from './chat.js';
 
 // --- State ---
-let currentView = 'chat'; // 'chat' | 'template' | 'template-edit' | 'memory' | 'settings'
 let editingTemplateId = null;
 
 // --- Init ---
@@ -156,13 +155,12 @@ function showPanel(name) {
   panels.forEach(id => document.getElementById(id).classList.add('hidden'));
 
   if (name === 'chat') {
-    currentView = 'chat';
     return;
   }
 
-  currentView = name;
   const panelId = name === 'template-editor' ? 'template-editor' : name + '-panel';
-  document.getElementById(panelId).classList.remove('hidden');
+  const el = document.getElementById(panelId);
+  if (el) el.classList.remove('hidden');
 
   if (name === 'template') loadTemplateList();
   if (name === 'memory') loadMemoryPanel();
