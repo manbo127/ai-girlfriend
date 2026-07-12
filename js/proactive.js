@@ -92,7 +92,7 @@ async function handleIdleStage(stage) {
 
   try {
     const reply = await aiChat([{ role: 'user', content: stage.context }], apiKey);
-    const msg = { id: 'proactive-' + Date.now(), role: 'assistant', content: reply, timestamp: Date.now() };
+    const msg = { id: 'proactive-' + Date.now(), role: 'assistant', content: reply.content || '', timestamp: Date.now() };
     renderMessage(msg);
     const { addMessage } = await import('./storage.js');
     await addMessage(msg);
