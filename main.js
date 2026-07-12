@@ -106,21 +106,26 @@ ipcMain.handle('open-app', async (event, appName) => {
       logOperation('open-app', appName, 'found: ' + found);
       return `已打开 ${appName}（${found}）`;
     } else {
-      // Fallback: use 'where' to find exe on PATH
-      const whereResult = await new Promise((resolve) => {
-        exec(`where "${appName}"`, (err, stdout) => {
-          if (!err && stdout.trim()) {
-            const exePath = stdout.trim().split('\n')[0].trim();
-            exec(`"${exePath}"`, (e) => { if (e) console.error('open-app error:', e); });
-            logOperation('open-app', appName, 'where found: ' + exePath);
-            resolve(`已打开 ${appName}（${exePath}）`);
-          } else {
-            logOperation('open-app', appName, 'not found');
-            resolve(`未找到应用 "${appName}"。请确认应用已安装，或尝试在设置中配置应用路径。`);
-          }
+      // Fallback: only use 'where' for ASCII names (Chinese causes encoding issues)
+      const isAscii = /^[\x00-\x7F]+$/.test(appName);
+      if (isAscii) {
+        const whereResult = await new Promise((resolve) => {
+          exec(`where "${appName}"`, (err, stdout) => {
+            if (!err && stdout.trim()) {
+              const exePath = stdout.trim().split('\n')[0].trim();
+              exec(`"${exePath}"`, (e) => { if (e) console.error('open-app error:', e); });
+              logOperation('open-app', appName, 'where found: ' + exePath);
+              resolve(`已打开 ${appName}（${exePath}）`);
+            } else {
+              logOperation('open-app', appName, 'not found');
+              resolve(`未找到应用 "${appName}"。请在设置中配置应用路径。`);
+            }
+          });
         });
-      });
-      return whereResult;
+        return whereResult;
+      }
+      logOperation('open-app', appName, 'not found');
+      return `未找到应用 "${appName}"。请确认已安装，或告诉我它的安装路径。`;
     }
   } else if (platform === 'darwin') {
     exec(`open -a "${appName}"`, (err) => {
@@ -197,7 +202,7 @@ const APP_MAP = {
   '迅雷': ['thunder', 'Thunder'],
 };
 
-function findExe(appName, dirs, maxDepth = 2) {
+function findExe(appName, dirs, maxDepth = 3) {
   const lower = appName.toLowerCase().replace(/\s/g, '');
   let searchNames = [];
 
