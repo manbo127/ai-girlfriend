@@ -3,7 +3,6 @@
 import { chat as aiChat, extractMemory } from './ai.js';
 import { addAutoMemory } from './memory.js';
 import { addMessage, getMessages } from './storage.js';
-import { getTimeGreeting } from './greeting.js';
 
 let messageListEl, inputEl, sendBtn, typingEl;
 let conversationHistory = []; // [{role, content}] for API — last N messages

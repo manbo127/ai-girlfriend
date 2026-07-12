@@ -13,7 +13,7 @@ import {
 import { getTimeGreeting } from './greeting.js';
 import { isSupported, requestPermission, schedule, cancel, getPermission } from './notifications.js';
 import {
-  initChat, renderMessage, showTyping, hideTyping,
+  initChat, renderMessage,
   addSystemMessage, loadHistory, getApiKey, setApiKey
 } from './chat.js';
 
@@ -187,8 +187,8 @@ function createTemplateCard(template, activeId, isPreset) {
 
   const preview = template.content.replace(/\n/g, ' ').substring(0, 50) + '...';
   card.innerHTML = `
-    <div class="name">${template.name} ${isPreset ? '(预设)' : ''}</div>
-    <div class="preview">${preview}</div>
+    <div class="name">${escapeHtml(template.name)} ${isPreset ? '(预设)' : ''}</div>
+    <div class="preview">${escapeHtml(preview)}</div>
     <div class="actions"></div>
   `;
 

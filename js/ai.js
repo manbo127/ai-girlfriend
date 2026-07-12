@@ -67,7 +67,9 @@ export async function chat(messages, apiKey) {
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  const choice = data.choices?.[0];
+  if (!choice?.message?.content) throw new Error('DeepSeek API returned an empty response');
+  return choice.message.content;
 }
 
 export async function extractMemory(conversation, apiKey) {
@@ -106,6 +108,6 @@ export async function extractMemory(conversation, apiKey) {
   }
 
   const data = await response.json();
-  const result = data.choices[0].message.content.trim();
+  const result = data.choices?.[0]?.message?.content?.trim() ?? 'NONE';
   return result === 'NONE' ? null : result;
 }
