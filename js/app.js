@@ -1,11 +1,7 @@
 // app.js — Main entry point
 
 import { openDB } from './storage.js';
-import {
-  getPresetTemplate, getCustomTemplates, saveCustomTemplate,
-  deleteCustomTemplate, getActiveTemplateId, setActiveTemplateId,
-  ensurePresetExists
-} from './templates.js';
+import { ensurePresetExists } from './templates.js';
 import {
   getManualFields, saveManualFields,
   getAutoMemories, deleteAutoMemory, clearAutoMemories
@@ -20,7 +16,6 @@ import { initMood } from './mood.js';
 import { initProactive, destroyProactive } from './proactive.js';
 
 // --- State ---
-let editingTemplateId = null;
 
 // --- Init ---
 async function init() {
@@ -76,9 +71,6 @@ async function loadHistoryAndGreet() {
     const { addMessage } = await import('./storage.js');
     await addMessage(msg);
   }
-
-  // Update template name display
-  updateTemplateNameDisplay();
 }
 
 // --- Panel Events ---
@@ -96,15 +88,8 @@ function initPanelEvents() {
   });
 
   // Top bar buttons
-  document.getElementById('btn-template').addEventListener('click', () => showPanel('template'));
   document.getElementById('btn-memory').addEventListener('click', () => showPanel('memory'));
   document.getElementById('btn-settings').addEventListener('click', () => showPanel('settings'));
-  document.getElementById('current-template-name').addEventListener('click', () => showPanel('template'));
-
-  // Template panel
-  document.getElementById('btn-new-template').addEventListener('click', () => openTemplateEditor(null));
-  document.getElementById('btn-save-template').addEventListener('click', saveTemplateEditor);
-  document.getElementById('btn-delete-template').addEventListener('click', deleteTemplateEditor);
 
   // Memory panel
   document.getElementById('manual-memory-form').addEventListener('submit', async (e) => {
@@ -158,157 +143,16 @@ function initPanelEvents() {
 
 // --- Panel Navigation ---
 function showPanel(name) {
-  const panels = ['template-panel', 'template-editor', 'memory-panel', 'settings-panel'];
+  const panels = ['memory-panel', 'settings-panel'];
   panels.forEach(id => document.getElementById(id).classList.add('hidden'));
 
-  if (name === 'chat') {
-    return;
-  }
+  if (name === 'chat') return;
 
-  const panelId = name === 'template-editor' ? 'template-editor' : name + '-panel';
-  const el = document.getElementById(panelId);
+  const el = document.getElementById(name + '-panel');
   if (el) el.classList.remove('hidden');
 
-  if (name === 'template') loadTemplateList();
   if (name === 'memory') loadMemoryPanel();
   if (name === 'settings') loadSettingsIntoForm();
-}
-
-async function loadTemplateList() {
-  const preset = getPresetTemplate();
-  const customs = await getCustomTemplates();
-  const activeId = await getActiveTemplateId();
-
-  const presetList = document.getElementById('preset-template-list');
-  presetList.innerHTML = '';
-  presetList.appendChild(createTemplateCard(preset, activeId, true));
-
-  const customList = document.getElementById('custom-template-list');
-  customList.innerHTML = '';
-  customs.forEach(t => customList.appendChild(createTemplateCard(t, activeId, false)));
-}
-
-function createTemplateCard(template, activeId, isPreset) {
-  const card = document.createElement('div');
-  card.className = 'template-card' + (template.id === activeId ? ' active' : '');
-
-  const preview = template.content.replace(/\n/g, ' ').substring(0, 50) + '...';
-  card.innerHTML = `
-    <div class="name">${escapeHtml(template.name)} ${isPreset ? '(预设)' : ''}</div>
-    <div class="preview">${escapeHtml(preview)}</div>
-    <div class="actions"></div>
-  `;
-
-  const actions = card.querySelector('.actions');
-
-  if (template.id !== activeId) {
-    const useBtn = document.createElement('button');
-    useBtn.textContent = '使用';
-    useBtn.addEventListener('click', async () => {
-      await setActiveTemplateId(template.id);
-      updateTemplateNameDisplay();
-      addSystemMessage(`✅ 已切换至「${template.name}」`);
-      showPanel('chat');
-    });
-    actions.appendChild(useBtn);
-  } else {
-    const activeLabel = document.createElement('span');
-    activeLabel.textContent = '✓ 当前使用';
-    activeLabel.style.cssText = 'font-size:12px;color:var(--pink-400);font-weight:600;';
-    actions.appendChild(activeLabel);
-  }
-
-  if (!isPreset) {
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '编辑';
-    editBtn.addEventListener('click', () => openTemplateEditor(template.id));
-    actions.appendChild(editBtn);
-
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '删除';
-    delBtn.className = 'danger';
-    delBtn.addEventListener('click', async () => {
-      if (!confirm('确定删除「' + template.name + '」吗？')) return;
-      if (template.id === activeId) {
-        await setActiveTemplateId('preset-tsundere');
-        updateTemplateNameDisplay();
-      }
-      await deleteCustomTemplate(template.id);
-      await loadTemplateList();
-    });
-    actions.appendChild(delBtn);
-  }
-
-  return card;
-}
-
-// --- Template Editor ---
-async function openTemplateEditor(templateId) {
-  editingTemplateId = templateId;
-  const nameInput = document.getElementById('template-name-input');
-  const contentInput = document.getElementById('template-content-input');
-  const deleteBtn = document.getElementById('btn-delete-template');
-
-  if (templateId) {
-    const { getTemplates } = await import('./storage.js');
-    const all = await getTemplates();
-    const found = all.find(t => t.id === templateId);
-    if (found) {
-      nameInput.value = found.name;
-      contentInput.value = found.content;
-      deleteBtn.classList.remove('hidden');
-    }
-  } else {
-    nameInput.value = '';
-    contentInput.value = '';
-    deleteBtn.classList.add('hidden');
-  }
-
-  showPanel('template-editor');
-}
-
-async function saveTemplateEditor() {
-  const name = document.getElementById('template-name-input').value.trim();
-  const content = document.getElementById('template-content-input').value.trim();
-  if (!name || !content) { alert('请填写名称和内容'); return; }
-
-  if (editingTemplateId) {
-    const { getTemplates } = await import('./storage.js');
-    const all = await getTemplates();
-    const found = all.find(t => t.id === editingTemplateId);
-    if (found) {
-      found.name = name;
-      found.content = content;
-      await saveCustomTemplate(found);
-    }
-  } else {
-    const template = {
-      id: 'custom-' + Date.now(),
-      name,
-      content,
-      isPreset: false,
-      createdAt: Date.now()
-    };
-    await saveCustomTemplate(template);
-  }
-
-  editingTemplateId = null;
-  showPanel('template');
-  await loadTemplateList();
-}
-
-async function deleteTemplateEditor() {
-  if (!editingTemplateId) return;
-  if (!confirm('确定删除此模板吗？')) return;
-  const activeId = await getActiveTemplateId();
-  if (editingTemplateId === activeId) {
-    await setActiveTemplateId('preset-tsundere');
-    updateTemplateNameDisplay();
-  }
-  await deleteCustomTemplate(editingTemplateId);
-  editingTemplateId = null;
-  showPanel('template');
-  await loadTemplateList();
 }
 
 // --- Memory Panel ---
@@ -372,19 +216,6 @@ async function initNotificationsFromSettings() {
   if (settings.notificationsEnabled && isSupported() && getPermission() === 'granted') {
     const [h, m] = (settings.notificationTime || '21:00').split(':').map(Number);
     schedule(h, m);
-  }
-}
-
-// --- Template Name Display ---
-async function updateTemplateNameDisplay() {
-  const activeId = await getActiveTemplateId();
-  if (activeId === 'preset-tsundere') {
-    document.getElementById('current-template-name').textContent = '傲娇毒舌';
-  } else {
-    const { getTemplates } = await import('./storage.js');
-    const all = await getTemplates();
-    const found = all.find(t => t.id === activeId);
-    document.getElementById('current-template-name').textContent = found ? found.name : '未命名';
   }
 }
 

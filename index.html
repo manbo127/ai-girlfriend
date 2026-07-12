@@ -10,9 +10,8 @@
   <div id="app">
     <!-- 顶栏 -->
     <header id="topbar">
-      <span id="current-template-name">傲娇毒舌</span>
+      <span id="topbar-title">小七</span>
       <div id="topbar-actions">
-        <button id="btn-template" title="性格模板">🎭</button>
         <button id="btn-memory" title="关于你">💝</button>
         <button id="btn-settings" title="设置">⚙️</button>
       </div>
@@ -31,36 +30,6 @@
       <input type="text" id="message-input" placeholder="说点什么..." autocomplete="off">
       <button id="btn-send">发送</button>
     </footer>
-
-    <!-- 模板管理面板 -->
-    <div id="template-panel" class="slide-panel hidden">
-      <div class="panel-header">
-        <button class="btn-back">← 返回</button>
-        <h2>性格模板</h2>
-      </div>
-      <div class="panel-body">
-        <div id="preset-template-list"></div>
-        <h3>✏️ 自定义模板</h3>
-        <div id="custom-template-list"></div>
-        <button id="btn-new-template" class="primary">+ 新建模板</button>
-      </div>
-    </div>
-
-    <!-- 模板编辑面板 -->
-    <div id="template-editor" class="slide-panel hidden">
-      <div class="panel-header">
-        <button class="btn-back" data-target="template">← 返回</button>
-        <h2>编辑模板</h2>
-      </div>
-      <div class="panel-body">
-        <label>模板名称 <input type="text" id="template-name-input" placeholder="例如：我的专属"></label>
-        <label>性格描述 <textarea id="template-content-input" rows="10" placeholder="描述她的性格、语气、说话风格...&#10;&#10;例如：&#10;你是一个温柔体贴的姐姐型女友..."></textarea></label>
-        <div style="display:flex;gap:8px;">
-          <button id="btn-save-template" class="primary">保存</button>
-          <button id="btn-delete-template" class="danger hidden">删除此模板</button>
-        </div>
-      </div>
-    </div>
 
     <!-- 记忆面板 -->
     <div id="memory-panel" class="slide-panel hidden">

@@ -46,7 +46,7 @@ body {
   padding: 12px 16px; background: rgba(255,255,255,0.95);
   backdrop-filter: blur(10px); border-bottom: 1px solid var(--pink-100); z-index: 10;
 }
-#current-template-name { font-size: 15px; font-weight: 600; color: var(--pink-500); cursor: pointer; }
+#topbar-title { font-size: 15px; font-weight: 600; color: var(--pink-500); }
 #topbar-actions { display: flex; gap: 8px; }
 #topbar-actions button {
   width: 36px; height: 36px; border: none; border-radius: 50%;
