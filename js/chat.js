@@ -88,14 +88,13 @@ async function handleSend() {
   if (hasPositive) {
     moodChanges.happy = 5;
     moodChanges.closeness = 3;
-    moodChanges.worried = -10;
   } else if (hasNegative) {
-    moodChanges.worried = 10;
     moodChanges.happy = -5;
   } else {
     moodChanges.happy = 2;
-    moodChanges.worried = -3;
   }
+  // Chatting with her always reduces worry
+  moodChanges.worried = -15;
   updateMood(moodChanges);
 
   inputEl.value = '';

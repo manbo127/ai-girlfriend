@@ -30,7 +30,7 @@ async function applyTimeDecay() {
   const changes = {
     happy: mood.happy > 50 ? -1 : 1,
     pouty: Math.min(100, mood.pouty + 2),
-    worried: mood.worried > 10 ? -3 : 0
+    worried: mood.worried + 3
   };
   await updateMood(changes);
 }
