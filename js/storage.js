@@ -49,8 +49,9 @@ export function openDB() {
         if (retried) return reject(event.target.error);
         retried = true;
         console.warn('IndexedDB open failed, resetting...', event.target.error);
-        indexedDB.deleteDatabase(DB_NAME);
-        tryOpen();
+        const delReq = indexedDB.deleteDatabase(DB_NAME);
+        delReq.onsuccess = () => tryOpen();
+        delReq.onerror = () => reject(new Error('Failed to reset database'));
       };
     }
     tryOpen();

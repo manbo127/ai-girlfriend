@@ -396,8 +396,6 @@ function logOperation(op, target, result) {
 
 // --- App Lifecycle ---
 
-app.setPath('userData', path.join(__dirname, 'userdata'));
-
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
