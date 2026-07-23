@@ -2,27 +2,33 @@
 
 import { getActiveTemplateContent } from './templates.js';
 import { buildMemorySection } from './memory.js';
-import { getMoodDescription } from './mood.js';
 
 const DEEPSEEK_BASE = 'https://api.deepseek.com';
 
 export async function buildSystemPrompt() {
   const template = await getActiveTemplateContent();
-  const moodDesc = getMoodDescription();
   const memory = await buildMemorySection();
 
   const now = new Date();
+  const hour = now.getHours();
   const timeStr = now.toLocaleString('zh-CN', {
     timeZone: 'Asia/Shanghai',
-    year: 'numeric', month: 'long', day: 'numeric',
     weekday: 'long', hour: '2-digit', minute: '2-digit'
   });
 
+  // Time-of-day feeling
+  let timeFeeling = '';
+  if (hour >= 0 && hour < 6) timeFeeling = '深夜了，你还没睡，可能是有点失眠或者在赶作业。';
+  else if (hour >= 6 && hour < 9) timeFeeling = '早上，你可能刚醒，还不太清醒。';
+  else if (hour >= 9 && hour < 12) timeFeeling = '上午，你大概在画画或者上课摸鱼。';
+  else if (hour >= 12 && hour < 14) timeFeeling = '中午了，你可能在吃饭，或者刚睡醒午觉。';
+  else if (hour >= 14 && hour < 18) timeFeeling = '下午，你大概在教室或者宿舍画画。';
+  else if (hour >= 18 && hour < 22) timeFeeling = '晚上，你刚洗完澡，抱着黄焖鸡窝在床上。';
+  else timeFeeling = '很晚了，你有点困了但还在撑着。';
+
   let prompt = `${template}
 
-${moodDesc}
-
-现在是 ${timeStr}。
+现在是${timeStr}。${timeFeeling}
 
 `;
 
@@ -31,10 +37,6 @@ ${moodDesc}
 
 `;
   }
-
-  prompt += `
-
-你可以操控他的电脑（打开软件、搜索文件、截图等）。当收到"[工具结果：...]"时，说明系统已经完成了操作，你用自然语气告诉他结果就好。`;
 
   return prompt;
 }
@@ -48,12 +50,10 @@ export async function chat(messages, apiKey) {
       { role: 'system', content: systemPrompt },
       ...messages
     ],
-    temperature: 0.8,
-    max_tokens: 500,
+    temperature: 0.95,
+    max_tokens: 800,
     stream: false
   };
-
-  console.log('[DEBUG] Sending to DeepSeek,', messages.length, 'messages');
 
   const response = await fetch(`${DEEPSEEK_BASE}/v1/chat/completions`, {
     method: 'POST',

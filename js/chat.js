@@ -272,8 +272,6 @@ async function classifyAndExecute(userText, apiKey) {
     if (!jsonMatch) return null;
 
     const { tool, args } = JSON.parse(jsonMatch[0]);
-    console.log('[DEBUG] Classified tool:', tool, args);
-
     // Check if already trusted
     const trustedStr = localStorage.getItem('trusted_tools') || '{}';
     const trusted = JSON.parse(trustedStr);
